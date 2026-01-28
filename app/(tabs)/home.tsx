@@ -14,27 +14,7 @@ const { width } = Dimensions.get('window');
 export default function HomeScreen() {
   const router = useRouter();
 
-  const genres = [
-    { id: 'airline', label: 'Airline/Airport', icon: Plane, image: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&q=80', count: '120+' },
-    { id: 'cinema', label: 'Cinema', icon: Clapperboard, image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=400&q=80', count: '45+' },
-    { id: 'digital', label: 'Digital', icon: MonitorPlay, image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&q=80', count: '300+' },
-    { id: 'influencer', label: 'Influencer', icon: User, image: 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=400&q=80', count: '500+' },
-    { id: 'magazine', label: 'Magazine', icon: BookOpen, image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80', count: '80+' },
-    { id: 'newspaper', label: 'Newspaper', icon: Newspaper, image: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&q=80', count: '200+' },
-    { id: 'hyperlocal', label: 'Hyperlocal', icon: MapPin, image: 'https://images.unsplash.com/photo-1569336415962-a4bd9f69cd83?w=400&q=80', count: '150+' },
-    { id: 'btl', label: 'BTL', icon: Map, image: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=400&q=80', count: '90+' },
-    { id: 'outdoor', label: 'Outdoor', icon: Map, image: 'https://images.unsplash.com/photo-1562613531-a1e13337c667?w=400&q=80', count: '400+' },
-    { id: 'radio', label: 'Radio', icon: Radio, image: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=400&q=80', count: '60+' },
-    { id: 'sports', label: 'Sports', icon: ActivityIcon, image: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=400&q=80', count: '30+' },
-    { id: 'tv', label: 'Television', icon: Tv, image: 'https://images.unsplash.com/photo-1593784991095-a205069470b6?w=400&q=80', count: '25+' },
-    { id: 'ctv', label: 'CTV', icon: MonitorPlay, image: 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=400&q=80', count: '15+' },
-    { id: 'pr', label: 'Digital PR', icon: Smartphone, image: 'https://images.unsplash.com/photo-1557200199-354d850295e7?w=400&q=80', count: '100+' },
-  ];
 
-  // Helper for icons that might not exist in the import list above or need specific ones
-  function ActivityIcon(props: any) {
-    return <MapPin {...props} />; // Fallback
-  }
 
   const topSpends = [
     { id: 1, name: 'JioHotstar', category: 'Digital', image: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&q=80', rank: 1, color: '#A855F7' },
@@ -209,47 +189,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 14,
-  },
-  genreGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  genreCard: {
-    width: 150,
-    height: 100,
-    borderRadius: 12,
-    overflow: 'hidden',
-    position: 'relative',
-    backgroundColor: '#F3F4F6',
-    ...Colors.shadow.small,
-  },
-  genreImage: {
-    width: '100%',
-    height: '100%',
-  },
-  genreOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  genreContent: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  genreLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  genreCount: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.8)',
   },
   adBanner: {
     height: 300,

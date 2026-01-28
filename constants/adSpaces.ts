@@ -1,4 +1,4 @@
-export type AdCategory = 'billboards' | 'print' | 'digital' | 'radio' | 'cinema' | 'influencers';
+export type AdCategory = 'cinema' | 'newspaper' | 'influencers' | 'buses' | 'cabs' | 'auto' | 'metro_trains' | 'digital_tv' | 'digital_marketing' | 'led_vending' | 'led_vehicle' | 'billboards' | 'radio';
 
 export interface AdSpace {
   id: string;
@@ -16,12 +16,21 @@ export interface AdSpace {
 }
 
 export const categories = [
-  { id: 'billboards' as const, name: 'Billboards', icon: 'billboard' },
-  { id: 'print' as const, name: 'Print Media', icon: 'newspaper' },
-  { id: 'digital' as const, name: 'Digital', icon: 'smartphone' },
-  { id: 'radio' as const, name: 'Radio', icon: 'radio' },
   { id: 'cinema' as const, name: 'Cinema', icon: 'film' },
+  { id: 'newspaper' as const, name: 'Newspaper', icon: 'newspaper' },
   { id: 'influencers' as const, name: 'Influencers', icon: 'users' },
+  { id: 'buses' as const, name: 'Buses', icon: 'bus' },
+  { id: 'cabs' as const, name: 'Cabs', icon: 'car' },
+  { id: 'auto' as const, name: 'Auto', icon: 'zap' }, // approximation for Auto
+  { id: 'metro_trains' as const, name: 'Metro & Trains', icon: 'train' },
+  { id: 'digital_tv' as const, name: 'Digital(TV)', icon: 'tv' },
+  { id: 'digital_marketing' as const, name: 'Digital Marketing', icon: 'smartphone' },
+  { id: 'led_vending' as const, name: 'LED Vending Machine', icon: 'box' },
+  { id: 'led_vehicle' as const, name: 'LED Vehicle', icon: 'truck' },
+  { id: 'billboards' as const, name: 'Billboards', icon: 'billboard' }, // Kept regular billboards as well if needed, or mapped to something else? User asked for "all these services" from screenshot. Screenshot doesn't confirm if "Billboards" was removed, but let's keep it or move it. The screenshot shows broad categories. Let's append to existing or replace? Screenshot shows specific list. Let's keep 'billboards' and 'radio' as legacy or additional if not strictly forbidden, but standardizing types.
+  // Wait, the screenshot starts with Cinema, Newspaper.
+  // User said "add all these services".
+  // I will keep existing ones that make sense and map 'print' -> 'newspaper' etc where possible.
 ];
 
 export const adSpaces: AdSpace[] = [
@@ -54,7 +63,7 @@ export const adSpaces: AdSpace[] = [
   {
     id: '3',
     title: 'The Hindu - Full Page',
-    category: 'print',
+    category: 'newspaper',
     location: 'Chennai Edition',
     price: 105000,
     priceUnit: 'day',
@@ -68,7 +77,7 @@ export const adSpaces: AdSpace[] = [
   {
     id: '4',
     title: 'Times of India - Half Page',
-    category: 'print',
+    category: 'newspaper',
     location: 'All India',
     price: 85000,
     priceUnit: 'day',
@@ -81,7 +90,7 @@ export const adSpaces: AdSpace[] = [
   {
     id: '5',
     title: 'Instagram Sponsored Post',
-    category: 'digital',
+    category: 'digital_marketing',
     location: 'India',
     price: 45000,
     priceUnit: 'campaign',
@@ -94,7 +103,7 @@ export const adSpaces: AdSpace[] = [
   {
     id: '6',
     title: 'Google Display Network',
-    category: 'digital',
+    category: 'digital_marketing',
     location: 'Global',
     price: 30000,
     priceUnit: 'campaign',
@@ -166,27 +175,27 @@ export const campaignObjectives = [
 ];
 
 export const designStyles = [
-  { 
-    id: 'minimalist', 
-    name: 'Minimalist', 
+  {
+    id: 'minimalist',
+    name: 'Minimalist',
     description: 'Clean, simple design with focus on content',
     icon: 'minimize-2'
   },
-  { 
-    id: 'bold-vibrant', 
-    name: 'Bold & Vibrant', 
+  {
+    id: 'bold-vibrant',
+    name: 'Bold & Vibrant',
     description: 'Eye-catching colors and dynamic elements',
     icon: 'zap'
   },
-  { 
-    id: 'photo-centric', 
-    name: 'Photo-centric', 
+  {
+    id: 'photo-centric',
+    name: 'Photo-centric',
     description: 'Design focused on high-quality imagery',
     icon: 'camera'
   },
-  { 
-    id: 'custom', 
-    name: 'Custom Design', 
+  {
+    id: 'custom',
+    name: 'Custom Design',
     description: 'Work with our designers for a unique look',
     icon: 'edit'
   },

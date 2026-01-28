@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Upload, MapPin, DollarSign, Tag, Check } from 'lucide-react-native';
+import { ArrowLeft, Upload, MapPin, DollarSign, Tag, Check, ChevronDown } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import WebLayout from '@/components/WebLayout';
 import { useApp } from '@/contexts/AppContext';
+import { categories } from '@/constants/adSpaces';
 
 export default function AddListing() {
     const router = useRouter();
@@ -16,7 +17,8 @@ export default function AddListing() {
 
     const [form, setForm] = useState({
         name: '',
-        type: 'Billboard',
+        type: categories[0].name,
+        categoryId: categories[0].id,
         price: '',
         location: '',
         status: 'Active',
@@ -29,6 +31,7 @@ export default function AddListing() {
             setForm({
                 name: 'VR Mall Billboard',
                 type: 'Billboard',
+                categoryId: 'billboards',
                 price: '15000',
                 location: 'Anna Nagar, Chennai',
                 status: 'Active',
@@ -71,17 +74,37 @@ export default function AddListing() {
                         </View>
 
                         <View style={styles.col}>
-                            <Text style={styles.label}>Ad Type</Text>
-                            <View style={styles.row}>
-                                {['Billboard', 'Digital Screen', 'Transit'].map((type) => (
+                            <Text style={styles.label}>Category *</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
+                                {categories.map((cat) => (
                                     <TouchableOpacity
-                                        key={type}
-                                        style={[styles.typeChip, form.type === type && styles.activeTypeChip]}
-                                        onPress={() => setForm({ ...form, type })}
+                                        key={cat.id}
+                                        style={[styles.typeChip, form.categoryId === cat.id && styles.activeTypeChip]}
+                                        onPress={() => setForm({ ...form, type: cat.name, categoryId: cat.id })}
                                     >
-                                        <Text style={[styles.typeText, form.type === type && styles.activeTypeText]}>{type}</Text>
+                                        <Text style={[styles.typeText, form.categoryId === cat.id && styles.activeTypeText]}>{cat.name}</Text>
                                     </TouchableOpacity>
                                 ))}
+                            </ScrollView>
+                        </View>
+
+                        <View style={styles.col}>
+                            <Text style={styles.label}>Service Details</Text>
+                            <View style={styles.inputWrapper}>
+                                <Text style={styles.inputLabel}>Slots Available</Text>
+                                <TextInput
+                                    style={[styles.input, { flex: 1, borderWidth: 0 }]}
+                                    placeholder="e.g. 10"
+                                    placeholderTextColor={Colors.text.tertiary}
+                                />
+                            </View>
+                            <View style={[styles.inputWrapper, { marginTop: 12 }]}>
+                                <Text style={styles.inputLabel}>Date</Text>
+                                <TextInput
+                                    style={[styles.input, { flex: 1, borderWidth: 0 }]}
+                                    placeholder="e.g. YYYY-MM-DD"
+                                    placeholderTextColor={Colors.text.tertiary}
+                                />
                             </View>
                         </View>
 
@@ -90,7 +113,7 @@ export default function AddListing() {
                             <View style={styles.inputWrapper}>
                                 <DollarSign size={18} color={Colors.text.tertiary} />
                                 <TextInput
-                                    style={styles.input}
+                                    style={[styles.input, { borderWidth: 0 }]}
                                     placeholder="0.00"
                                     value={form.price}
                                     onChangeText={(t) => setForm({ ...form, price: t })}
@@ -104,8 +127,8 @@ export default function AddListing() {
                             <View style={styles.inputWrapper}>
                                 <MapPin size={18} color={Colors.text.tertiary} />
                                 <TextInput
-                                    style={styles.input}
-                                    placeholder="e.g. Anna Nagar, Chennai"
+                                    style={[styles.input, { borderWidth: 0 }]}
+                                    placeholder="e.g. City Square"
                                     value={form.location}
                                     onChangeText={(t) => setForm({ ...form, location: t })}
                                 />
@@ -113,10 +136,10 @@ export default function AddListing() {
                         </View>
 
                         <View style={[styles.col, { width: '100%' }]}>
-                            <Text style={styles.label}>Description</Text>
+                            <Text style={styles.label}>Description *</Text>
                             <TextInput
                                 style={[styles.input, styles.textArea]}
-                                placeholder="Describe your ad space..."
+                                placeholder="Describe the advertising medium..."
                                 value={form.description}
                                 onChangeText={(t) => setForm({ ...form, description: t })}
                                 multiline
@@ -208,7 +231,7 @@ const styles = StyleSheet.create({
         height: 48,
         fontSize: 15,
         color: Colors.text.primary,
-        outlineStyle: 'none',
+        // outlineStyle: 'none', // Removed to fix TS error, re-enable if needed for web
     },
     inputWrapper: {
         flexDirection: 'row',
@@ -220,6 +243,15 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         height: 48,
         gap: 10,
+    },
+    inputLabel: {
+        fontSize: 12,
+        color: Colors.text.tertiary,
+        marginBottom: -4,
+    },
+    categoryScroll: {
+        gap: 12,
+        paddingBottom: 4,
     },
     textArea: {
         height: 120,

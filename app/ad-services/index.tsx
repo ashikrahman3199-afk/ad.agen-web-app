@@ -8,6 +8,10 @@ import {
 import Colors from '@/constants/colors';
 import WebLayout from '@/components/WebLayout';
 import { useApp } from '@/contexts/AppContext';
+import { categories } from '@/constants/adSpaces';
+import {
+    Users, Bus, Car, Zap, Train, Box, Truck
+} from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -99,14 +103,32 @@ export default function AdServicesScreen() {
         },
     ];
 
+    // Icon mapping for dynamic categories
+    const iconMap: Record<string, any> = {
+        film: Clapperboard,
+        newspaper: Newspaper,
+        users: Users,
+        bus: Bus,
+        car: Car,
+        zap: Zap,
+        train: Train,
+        tv: Tv,
+        smartphone: Smartphone,
+        box: Box,
+        truck: Truck,
+        billboard: MonitorPlay,
+        radio: Radio,
+        'minimize-2': MapPin,
+    };
+
+    // Transform categories for the UI
     const genres = [
         { id: 'All', label: 'All', icon: Star },
-        { id: 'Airline', label: 'Airline', icon: Plane },
-        { id: 'Cinema', label: 'Cinema', icon: Clapperboard },
-        { id: 'Digital', label: 'Digital', icon: MonitorPlay },
-        { id: 'Outdoor', label: 'Outdoor', icon: Map },
-        { id: 'Radio', label: 'Radio', icon: Radio },
-        { id: 'TV', label: 'TV', icon: Tv },
+        ...categories.map(cat => ({
+            id: cat.id, // Use ID for filtering
+            label: cat.name,
+            icon: iconMap[cat.icon] || MapPin
+        }))
     ];
 
     const filters = ['All', 'Billboards', 'Digital', 'Transit', 'Cinema', 'Airport'];
@@ -114,7 +136,22 @@ export default function AdServicesScreen() {
     // Filter Logic
     const filteredSpaces = spaces.filter(space => {
         const matchesLocation = location === 'All Chennai' || space.location === location;
-        const matchesGenre = activeGenre === 'All' || space.genre === activeGenre;
+
+        // Match genre (category). Note: spaces mock data uses different casing/values than IDs.
+        // In a real app, data should be normalized. For now, we loosen the check or rely on ID if available.
+        // Checking if the space.genre matches the selected activeGenre (which is now an ID like 'cinema', 'newspaper')
+        // OR if activeGenre is 'All'.
+        // Existing mock data uses 'Outdoor', 'Digital', 'Cinema', 'Airline'.
+        // New IDs are lowercase: 'cinema', 'newspaper'.
+        // We might need to normalize the comparison.
+        const normalizedSpaceGenre = space.genre?.toLowerCase();
+        const normalizedActiveGenre = activeGenre.toLowerCase();
+
+        // This is a rough match for the mock data compatibility
+        const matchesGenre = activeGenre === 'All' ||
+            normalizedSpaceGenre === normalizedActiveGenre ||
+            space.type.toLowerCase() === normalizedActiveGenre;
+
         const matchesFilter = activeFilter === 'All' || space.type === activeFilter;
         return matchesLocation && matchesGenre && matchesFilter;
     });
