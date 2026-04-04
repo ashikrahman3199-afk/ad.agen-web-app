@@ -1,7 +1,9 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { TrendingUp, Users, DollarSign, Calendar, ArrowUpRight, MoreHorizontal, Check, X } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { trpc } from '@/lib/trpc';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { TrendingUp, Users, DollarSign, Calendar, ArrowUpRight, MoreHorizontal, Check, X, Plus } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import WebLayout from '@/components/WebLayout';
 
@@ -9,6 +11,8 @@ const { width } = Dimensions.get('window');
 
 export default function VendorDashboard() {
     const router = useRouter();
+
+    const [expandedRequestId, setExpandedRequestId] = useState<string | null>(null);
 
     // Mock Data
     const stats = [
@@ -18,19 +22,50 @@ export default function VendorDashboard() {
         { label: 'Avg. Occupancy', value: '85%', change: '+5%', icon: TrendingUp, color: Colors.info },
     ];
 
-    const requests = [
-        { id: '1', client: 'Nike India', space: 'VR Mall Billboard', date: 'Oct 15 - Nov 15', budget: '₹1.5L', status: 'Pending' },
-        { id: '2', client: 'Swiggy', space: 'Metro Station Digital', date: 'Oct 20 - Oct 25', budget: '₹45K', status: 'Pending' },
-        { id: '3', client: 'Zomato', space: 'Bus Shelter Network', date: 'Nov 01 - Nov 30', budget: '₹2.1L', status: 'Approved' },
-        { id: '4', client: 'Amazon Prime', space: 'Cinema Hall Foyer', date: 'Dec 01 - Dec 15', budget: '₹85K', status: 'Rejected' },
-        { id: '5', client: 'Coca Cola', space: 'Highway Hoarding', date: 'Jan 01 - Jan 31', budget: '₹3.5L', status: 'Pending' },
-    ];
+    const pickImage = async (requestId: string) => {
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 1,
+        });
+
+        if (!result.canceled) {
+            Alert.alert("Success", "Progress updated with image for request #" + requestId);
+        }
+    };
+
+    const toggleExpand = (id: string) => {
+        setExpandedRequestId(prev => prev === id ? null : id);
+    };
+
+    const { data: bookings } = trpc.bookings.list.useQuery();
+
+    interface Booking {
+        id: string;
+        clientId?: string;
+        startDate: string;
+        endDate: string;
+        totalAmount: number;
+        status: string;
+        createdAt: string;
+    }
+
+    const requests = (bookings as Booking[] | undefined)?.map((booking) => ({
+        id: booking.id,
+        client: booking.clientId || 'Client',
+        space: 'Start Date: ' + booking.startDate,
+        date: `${booking.startDate} - ${booking.endDate}`,
+        budget: `₹${booking.totalAmount}`,
+        status: booking.status,
+        details: 'Fetched from backend', // Placeholder
+    })) || [];
 
     return (
         <WebLayout role="vendor" title="Overview">
             {/* Stats Grid */}
             <View style={styles.statsGrid}>
-                {stats.map((stat, index) => (
+                {stats.map((stat, index: number) => (
                     <View key={index} style={styles.statCard}>
                         <View style={styles.statHeader}>
                             <View style={[styles.iconBox, { backgroundColor: `${stat.color}15` }]}>
@@ -65,35 +100,53 @@ export default function VendorDashboard() {
                             <Text style={[styles.col, { flex: 2 }]}>Duration</Text>
                             <Text style={[styles.col, { flex: 1 }]}>Budget</Text>
                             <Text style={[styles.col, { flex: 1 }]}>Status</Text>
-                            <Text style={[styles.col, { flex: 1, textAlign: 'right' }]}>Actions</Text>
+                            <Text style={[styles.col, { flex: 1, textAlign: 'right' }]}>Progress</Text>
                         </View>
-                        {requests.map((req, index) => (
-                            <View key={req.id} style={[styles.tableRow, index !== requests.length - 1 && styles.borderBottom]}>
-                                <Text style={[styles.col, { flex: 2, fontWeight: '600', color: Colors.text.primary }]}>{req.client}</Text>
-                                <Text style={[styles.col, { flex: 2, color: Colors.text.secondary }]}>{req.space}</Text>
-                                <Text style={[styles.col, { flex: 2, color: Colors.text.tertiary }]}>{req.date}</Text>
-                                <Text style={[styles.col, { flex: 1, fontWeight: '600' }]}>{req.budget}</Text>
-                                <View style={[styles.col, { flex: 1 }]}>
-                                    <View style={[styles.statusBadge,
-                                    req.status === 'Pending' ? { backgroundColor: '#FEF3C7', borderColor: '#F59E0B' } :
-                                        req.status === 'Approved' ? { backgroundColor: '#DCFCE7', borderColor: '#10B981' } :
-                                            { backgroundColor: '#FEE2E2', borderColor: '#EF4444' }
-                                    ]}>
-                                        <Text style={[styles.statusText,
-                                        req.status === 'Pending' ? { color: '#B45309' } :
-                                            req.status === 'Approved' ? { color: '#15803D' } :
-                                                { color: '#B91C1C' }
-                                        ]}>{req.status}</Text>
+                        {requests.map((req, index: number) => (
+                            <View key={req.id} style={index !== requests.length - 1 && styles.borderBottom}>
+                                <TouchableOpacity
+                                    style={styles.tableRow}
+                                    onPress={() => toggleExpand(req.id)}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={[styles.col, { flex: 2, fontWeight: '600', color: Colors.text.primary }]}>{req.client}</Text>
+                                    <Text style={[styles.col, { flex: 2, color: Colors.text.secondary }]}>{req.space}</Text>
+                                    <Text style={[styles.col, { flex: 2, color: Colors.text.tertiary }]}>{req.date}</Text>
+                                    <Text style={[styles.col, { flex: 1, fontWeight: '600' }]}>{req.budget}</Text>
+                                    <View style={{ flex: 1 }}>
+                                        <View style={[styles.statusBadge,
+                                        req.status === 'Upcoming' ? { backgroundColor: '#E0F2FE', borderColor: '#38BDF8' } :
+                                            req.status === 'Active' ? { backgroundColor: '#DCFCE7', borderColor: '#10B981' } :
+                                                { backgroundColor: '#F3F4F6', borderColor: '#9CA3AF' }
+                                        ]}>
+                                            <Text style={[styles.statusText,
+                                            req.status === 'Upcoming' ? { color: '#0369A1' } :
+                                                req.status === 'Active' ? { color: '#15803D' } :
+                                                    { color: '#4B5563' }
+                                            ]}>{req.status}</Text>
+                                        </View>
                                     </View>
-                                </View>
-                                <View style={[styles.col, { flex: 1, flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }]}>
-                                    <TouchableOpacity style={styles.actionBtn}>
-                                        <Check size={16} color={Colors.success} />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity style={styles.actionBtn}>
-                                        <X size={16} color={Colors.error} />
-                                    </TouchableOpacity>
-                                </View>
+                                    <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+                                        <TouchableOpacity style={styles.actionBtn} onPress={(e) => {
+                                            e.stopPropagation();
+                                            pickImage(req.id);
+                                        }}>
+                                            <Plus size={16} color={Colors.primary} />
+                                        </TouchableOpacity>
+                                    </View>
+                                </TouchableOpacity>
+                                {expandedRequestId === req.id && (
+                                    <View style={styles.expandedContent}>
+                                        <View style={styles.detailRow}>
+                                            <Text style={styles.detailLabel}>Campaign Details:</Text>
+                                            <Text style={styles.detailValue}>{req.details}</Text>
+                                        </View>
+                                        <View style={styles.detailRow}>
+                                            <Text style={styles.detailLabel}>Contact:</Text>
+                                            <Text style={styles.detailValue}>Shared via Admin (Mobile Hidden)</Text>
+                                        </View>
+                                    </View>
+                                )}
                             </View>
                         ))}
                     </View>
@@ -197,7 +250,7 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         padding: 24,
         ...Colors.shadow.small,
-        height: 'fit-content',
+        height: 'fit-content' as any,
     },
     sectionHeader: {
         flexDirection: 'row',
@@ -250,10 +303,14 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     actionBtn: {
-        padding: 8,
-        borderRadius: 8,
-        backgroundColor: '#F3F4F6',
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255, 107, 53, 0.1)', // Transparent orange
+        justifyContent: 'center',
+        alignItems: 'center',
     },
+
     actionList: {
         gap: 16,
     },
@@ -282,5 +339,26 @@ const styles = StyleSheet.create({
     actionDesc: {
         fontSize: 13,
         color: Colors.text.secondary,
+    },
+    expandedContent: {
+        padding: 16,
+        backgroundColor: '#F9FAFB',
+        borderTopWidth: 1,
+        borderTopColor: '#F3F4F6',
+    },
+    detailRow: {
+        flexDirection: 'row',
+        marginBottom: 8,
+    },
+    detailLabel: {
+        fontWeight: '600',
+        width: 150,
+        color: Colors.text.secondary,
+        fontSize: 14,
+    },
+    detailValue: {
+        flex: 1,
+        color: Colors.text.primary,
+        fontSize: 14,
     },
 });

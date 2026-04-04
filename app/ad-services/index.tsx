@@ -207,7 +207,7 @@ export default function AdServicesScreen() {
                 <View style={styles.grid}>
                     {filteredSpaces.length > 0 ? (
                         filteredSpaces.map((space) => (
-                            <TouchableOpacity key={space.id} style={styles.card} onPress={() => router.push(`/(ad-space)/${space.id}`)}>
+                            <TouchableOpacity key={space.id} style={styles.card} onPress={() => router.push(`/ad-space/${space.id}`)}>
                                 <Image source={{ uri: space.image }} style={styles.cardImage} />
                                 <View style={styles.cardContent}>
                                     <View style={styles.cardHeader}>

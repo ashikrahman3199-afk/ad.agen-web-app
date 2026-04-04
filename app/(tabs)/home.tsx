@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, TextInput, Modal, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   Search, MapPin, Star, ArrowRight,
   Plane, Clapperboard, MonitorPlay, User, BookOpen, Newspaper, Map, Radio, Tv, Smartphone,
-  BarChart3, Calendar, ShoppingCart, ChevronRight, ChevronLeft
+  BarChart3, Calendar, ShoppingCart, ChevronRight, ChevronLeft, X
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import WebLayout from '@/components/WebLayout';
@@ -13,6 +13,26 @@ const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const router = useRouter();
+  const [isJoinModalVisible, setJoinModalVisible] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    company: '',
+    email: '',
+    phone: ''
+  });
+
+  const handleJoinSubmit = () => {
+    // Basic validation
+    if (!formData.name || !formData.email || !formData.phone) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    // In a real app, this would send data to backend
+    Alert.alert('Success', 'Thank you for your interest! We will contact you shortly.');
+    setJoinModalVisible(false);
+    setFormData({ name: '', company: '', email: '', phone: '' });
+  };
 
 
 
@@ -66,7 +86,11 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Top Media Spends</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
             {topSpends.map((item) => (
-              <TouchableOpacity key={item.id} style={styles.mediaCard}>
+              <TouchableOpacity
+                key={item.id}
+                style={styles.mediaCard}
+                onPress={() => router.push('/ad-services')}
+              >
                 <Image source={{ uri: item.image }} style={styles.mediaImage} />
                 <View style={[styles.rankBadge, { backgroundColor: item.color }]}>
                   <Text style={styles.rankText}>#{item.rank}</Text>
@@ -85,7 +109,11 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Latest Addition</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
             {latestAdditions.map((item) => (
-              <TouchableOpacity key={item.id} style={styles.mediaCard}>
+              <TouchableOpacity
+                key={item.id}
+                style={styles.mediaCard}
+                onPress={() => router.push(`/ad-space/${item.id}`)}
+              >
                 <Image source={{ uri: item.image }} style={styles.mediaImage} />
                 <View style={styles.mediaContent}>
                   <Text style={styles.mediaName} numberOfLines={1}>{item.name}</Text>
@@ -101,7 +129,11 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Recently Viewed</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
             {recentlyViewed.map((item) => (
-              <TouchableOpacity key={item.id} style={styles.recentCard}>
+              <TouchableOpacity
+                key={item.id}
+                style={styles.recentCard}
+                onPress={() => router.push(`/ad-space/${item.id}`)}
+              >
                 <Image source={{ uri: item.image }} style={styles.recentImage} />
                 <Text style={styles.recentName} numberOfLines={2}>{item.name}</Text>
               </TouchableOpacity>
@@ -116,7 +148,7 @@ export default function HomeScreen() {
             <Text style={styles.partnerDesc}>
               Get exclusive access to Advantage 360 – Plan, Compare & Sell Media Smarter with Real-Time Rates & Tools.
             </Text>
-            <TouchableOpacity style={styles.joinBtn} onPress={() => router.push('/login')}>
+            <TouchableOpacity style={styles.joinBtn} onPress={() => setJoinModalVisible(true)}>
               <Text style={styles.joinBtnText}>JOIN NOW</Text>
             </TouchableOpacity>
           </View>
@@ -128,6 +160,72 @@ export default function HomeScreen() {
         </View>
 
       </View>
+
+      <Modal
+        visible={isJoinModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setJoinModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Become an Agency Partner</Text>
+              <TouchableOpacity onPress={() => setJoinModalVisible(false)}>
+                <X size={24} color={Colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.formContainer}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Full Name *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your name"
+                  value={formData.name}
+                  onChangeText={(text) => setFormData({ ...formData, name: text })}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Company Name</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter company name"
+                  value={formData.company}
+                  onChangeText={(text) => setFormData({ ...formData, company: text })}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Email Address *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter email address"
+                  keyboardType="email-address"
+                  value={formData.email}
+                  onChangeText={(text) => setFormData({ ...formData, email: text })}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Phone Number *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter phone number"
+                  keyboardType="phone-pad"
+                  value={formData.phone}
+                  onChangeText={(text) => setFormData({ ...formData, phone: text })}
+                />
+              </View>
+
+              <TouchableOpacity style={styles.submitBtn} onPress={handleJoinSubmit}>
+                <Text style={styles.submitBtnText}>Submit Request</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </WebLayout>
   );
 }
@@ -327,5 +425,63 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 100,
     backgroundColor: '#FFFFFF',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 32,
+    width: '100%',
+    maxWidth: 500,
+    ...Colors.shadow.medium,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.text.primary,
+  },
+  formContainer: {
+    gap: 16,
+  },
+  inputGroup: {
+    gap: 8,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text.primary,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: Colors.text.primary,
+  },
+  submitBtn: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  submitBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 16,
   },
 });

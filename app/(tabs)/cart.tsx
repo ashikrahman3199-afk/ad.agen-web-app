@@ -52,9 +52,9 @@ export default function CartScreen() {
                     <View style={styles.itemContent}>
                       <View style={styles.itemHeader}>
                         <View>
-                          <Text style={styles.itemTitle}>{item.name}</Text>
-                          <Text style={styles.itemLocation}>{item.location.address}</Text>
-                          <Text style={styles.itemType}>Billboards</Text>
+                          <Text style={styles.itemTitle}>{item.title}</Text>
+                          <Text style={styles.itemLocation}>{item.location}</Text>
+                          <Text style={styles.itemType}>{item.category || 'Billboards'}</Text>
                         </View>
                         <TouchableOpacity onPress={() => removeFromCart(item.id)}>
                           <Trash2 size={20} color={Colors.error} />
@@ -123,7 +123,7 @@ export default function CartScreen() {
                     <Text style={styles.footerLabel}>Total</Text>
                     <Text style={styles.footerTotal}>₹{finalTotal.toLocaleString()}</Text>
                   </View>
-                  <TouchableOpacity style={styles.checkoutBtn} onPress={() => router.push('/campaign/create')}>
+                  <TouchableOpacity style={styles.checkoutBtn} onPress={() => router.push('/booking')}>
                     <Text style={styles.checkoutText}>Next</Text>
                   </TouchableOpacity>
                 </View>

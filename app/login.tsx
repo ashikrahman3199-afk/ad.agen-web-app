@@ -1,24 +1,68 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Dimensions, Platform, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Lock, Mail, ArrowRight, CheckCircle2 } from 'lucide-react-native';
+import { Phone, ArrowRight, CheckCircle2 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { useApp } from '@/contexts/AppContext';
+import { trpc } from '@/lib/trpc';
 
-const { width, height } = Dimensions.get('window');
-const IS_WEB = Platform.OS === 'web';
+const { width } = Dimensions.get('window');
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { login } = useApp();
   const [role, setRole] = useState<'client' | 'vendor'>('client');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otp, setOtp] = useState('');
 
-  const handleLogin = () => {
-    if (role === 'client') {
-      router.replace('/(tabs)/home');
-    } else {
-      router.replace('/vendor/dashboard');
+  const sendOTP = trpc.auth.sendOTP.useMutation({
+    onSuccess: (data) => {
+      // In dev mode or fallback, we might get the code back
+      if (data.message.includes("Dev Code")) {
+        Alert.alert("Dev Mode", data.message);
+      } else {
+        Alert.alert("OTP Sent", "Please check your messages.");
+      }
+      setStep('otp');
+    },
+    onError: (err) => {
+      Alert.alert("Error", err.message);
     }
+  });
+
+  const verifyOTP = trpc.auth.verifyOTP.useMutation({
+    onSuccess: (data) => {
+      if (data.success && data.token) {
+        login(role, data.token);
+      } else {
+        Alert.alert("Invalid OTP", "Please try again.");
+      }
+    },
+    onError: (err) => {
+      Alert.alert("Error", err.message);
+    }
+  });
+
+  const handleSendOTP = () => {
+    if (phoneNumber.length < 10) {
+      Alert.alert("Invalid Phone", "Please enter a valid mobile number.");
+      return;
+    }
+    // Format to E.164 if needed, for simplicity passing raw but ideally should be formatted
+    // Assuming backend handles or user enters +91... or just local numbers for now.
+    // Let's prepend +91 if not present for India context, or just pass as is.
+    const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
+    sendOTP.mutate({ phoneNumber: formattedPhone, role });
+  };
+
+  const handleVerifyOTP = () => {
+    if (otp.length < 4) {
+      Alert.alert("Invalid OTP", "Enter the code you received.");
+      return;
+    }
+    const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
+    verifyOTP.mutate({ phoneNumber: formattedPhone, code: otp, role });
   };
 
   return (
@@ -65,70 +109,96 @@ export default function LoginScreen() {
       <View style={styles.rightPanel}>
         <View style={styles.formContainer}>
           <View style={styles.header}>
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Please enter your details to sign in.</Text>
+            <Text style={styles.title}>{step === 'phone' ? 'Welcome Back' : 'Verify OTP'}</Text>
+            <Text style={styles.subtitle}>
+              {step === 'phone'
+                ? 'Enter your mobile number to sign in.'
+                : `Enter the code sent to ${phoneNumber}`
+              }
+            </Text>
           </View>
 
           {/* Role Selector */}
-          <View style={styles.roleSelector}>
-            <TouchableOpacity
-              style={[styles.roleButton, role === 'client' && styles.roleButtonActive]}
-              onPress={() => setRole('client')}
-            >
-              <Text style={[styles.roleText, role === 'client' && styles.roleTextActive]}>Advertiser</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.roleButton, role === 'vendor' && styles.roleButtonActive]}
-              onPress={() => setRole('vendor')}
-            >
-              <Text style={[styles.roleText, role === 'vendor' && styles.roleTextActive]}>Media Owner</Text>
-            </TouchableOpacity>
-          </View>
+          {step === 'phone' && (
+            <View style={styles.roleSelector}>
+              <TouchableOpacity
+                style={[styles.roleButton, role === 'client' && styles.roleButtonActive]}
+                onPress={() => setRole('client')}
+              >
+                <Text style={[styles.roleText, role === 'client' && styles.roleTextActive]}>Advertiser</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.roleButton, role === 'vendor' && styles.roleButtonActive]}
+                onPress={() => setRole('vendor')}
+              >
+                <Text style={[styles.roleText, role === 'vendor' && styles.roleTextActive]}>Media Owner</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Inputs */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email Address</Text>
-            <View style={styles.inputWrapper}>
-              <Mail size={20} color={Colors.text.tertiary} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="name@company.com"
-                placeholderTextColor={Colors.text.tertiary}
-                value={email}
-                onChangeText={setEmail}
-              />
+          {step === 'phone' ? (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Mobile Number</Text>
+              <View style={styles.inputWrapper}>
+                <Phone size={20} color={Colors.text.tertiary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="9876543210"
+                  placeholderTextColor={Colors.text.tertiary}
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  keyboardType="phone-pad"
+                  maxLength={10}
+                />
+              </View>
             </View>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Password</Text>
-            <View style={styles.inputWrapper}>
-              <Lock size={20} color={Colors.text.tertiary} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="••••••••"
-                placeholderTextColor={Colors.text.tertiary}
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-              />
+          ) : (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>OTP Code</Text>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={[styles.input, { textAlign: 'center', letterSpacing: 8, fontSize: 24, fontWeight: '700' }]}
+                  placeholder="123456"
+                  placeholderTextColor={Colors.text.tertiary}
+                  value={otp}
+                  onChangeText={setOtp}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  autoFocus
+                />
+              </View>
             </View>
-          </View>
-
-          <TouchableOpacity style={styles.forgotButton}>
-            <Text style={[styles.forgotText, { color: role === 'client' ? Colors.primary : Colors.vendor.primary }]}>Forgot Password?</Text>
-          </TouchableOpacity>
+          )}
 
           <TouchableOpacity
-            style={[styles.submitButton, { backgroundColor: role === 'client' ? Colors.primary : Colors.vendor.primary }]}
-            onPress={handleLogin}
+            style={[
+              styles.submitButton,
+              { backgroundColor: role === 'client' ? Colors.primary : Colors.vendor.primary },
+              (sendOTP.isPending || verifyOTP.isPending) && { opacity: 0.7 }
+            ]}
+            onPress={step === 'phone' ? handleSendOTP : handleVerifyOTP}
+            disabled={sendOTP.isPending || verifyOTP.isPending}
           >
-            <Text style={styles.submitButtonText}>Sign In</Text>
-            <ArrowRight size={20} color="#FFFFFF" />
+            {sendOTP.isPending || verifyOTP.isPending ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <>
+                <Text style={styles.submitButtonText}>{step === 'phone' ? 'Get OTP' : 'Verify & Login'}</Text>
+                <ArrowRight size={20} color="#FFFFFF" />
+              </>
+            )}
+
           </TouchableOpacity>
 
+          {step === 'otp' && (
+            <TouchableOpacity onPress={() => setStep('phone')} style={styles.backLink}>
+              <Text style={styles.footerLink}>Change Number</Text>
+            </TouchableOpacity>
+          )}
+
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
+            <Text style={styles.footerText}>Don&apos;t have an account? </Text>
             <TouchableOpacity onPress={() => router.push('/signup')}>
               <Text style={[styles.footerLink, { color: role === 'client' ? Colors.primary : Colors.vendor.primary }]}>Sign up</Text>
             </TouchableOpacity>
@@ -273,16 +343,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: Colors.text.primary,
-    outlineStyle: 'none',
-  },
-  forgotButton: {
-    alignSelf: 'flex-end',
-    marginBottom: 32,
-  },
-  forgotText: {
-    fontSize: 14,
-    color: Colors.primary,
-    fontWeight: '600',
   },
   submitButton: {
     flexDirection: 'row',
@@ -314,4 +374,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.primary,
   },
+  backLink: {
+    alignSelf: 'center',
+    marginBottom: 24,
+  }
 });

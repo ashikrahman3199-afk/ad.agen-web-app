@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { trpc } from '@/lib/trpc';
 import { ArrowLeft, Upload, MapPin, DollarSign, Tag, Check, ChevronDown } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import WebLayout from '@/components/WebLayout';
@@ -40,9 +41,44 @@ export default function AddListing() {
         }
     }, [isEdit]);
 
+    const utils = trpc.useUtils();
+    const createListing = trpc.listings.create.useMutation({
+        onSuccess: () => {
+            utils.listings.list.invalidate();
+            router.back();
+        },
+    });
+
+    useEffect(() => {
+        if (isEdit) {
+            // Simulate fetching data
+            setForm({
+                name: 'VR Mall Billboard',
+                type: 'Billboard',
+                categoryId: 'billboards',
+                price: '15000',
+                location: 'Anna Nagar, Chennai',
+                status: 'Active',
+                description: 'Premium billboard location with high visibility.',
+            });
+        }
+    }, [isEdit]);
+
     const handleSave = () => {
-        // Handle save logic
-        router.back();
+        if (isEdit) {
+            // Update logic here if needed
+            router.back();
+        } else {
+            createListing.mutate({
+                name: form.name,
+                categoryId: form.categoryId,
+                price: parseFloat(form.price) || 0,
+                location: form.location,
+                description: form.description,
+                status: 'Active',
+                // Add other fields as necessary
+            });
+        }
     };
 
     return (
@@ -56,9 +92,15 @@ export default function AddListing() {
                 <View style={styles.card}>
                     <View style={styles.header}>
                         <Text style={styles.title}>{isEdit ? 'Edit Listing Details' : 'Create New Listing'}</Text>
-                        <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+                        <TouchableOpacity
+                            style={[styles.saveBtn, createListing.isPending && { opacity: 0.7 }]}
+                            onPress={handleSave}
+                            disabled={createListing.isPending}
+                        >
                             <Check size={18} color="#FFFFFF" />
-                            <Text style={styles.saveBtnText}>{isEdit ? 'Update Listing' : 'Publish Listing'}</Text>
+                            <Text style={styles.saveBtnText}>
+                                {createListing.isPending ? 'Saving...' : (isEdit ? 'Update Listing' : 'Publish Listing')}
+                            </Text>
                         </TouchableOpacity>
                     </View>
 

@@ -1,25 +1,66 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Dimensions, Platform, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Lock, Mail, User, Building2, ArrowRight, CheckCircle2 } from 'lucide-react-native';
+import { Phone, User, Building2, ArrowRight, CheckCircle2 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { trpc } from '@/lib/trpc';
+import { useApp } from '@/contexts/AppContext';
 
 const { width } = Dimensions.get('window');
 
 export default function SignupScreen() {
     const router = useRouter();
+    const { login } = useApp();
     const [role, setRole] = useState<'client' | 'vendor'>('client');
+    const [step, setStep] = useState<'details' | 'otp'>('details');
+
+    // Form Data
     const [name, setName] = useState('');
     const [company, setCompany] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [otp, setOtp] = useState('');
+
+    const sendOTP = trpc.auth.sendOTP.useMutation({
+        onSuccess: (data) => {
+            if (data.message.includes("Dev Code")) {
+                Alert.alert("Dev Mode", data.message);
+            } else {
+                Alert.alert("OTP Sent", "Please check your messages.");
+            }
+            setStep('otp');
+        },
+        onError: (err) => Alert.alert("Error", err.message)
+    });
+
+    const verifyOTP = trpc.auth.verifyOTP.useMutation({
+        onSuccess: (data) => {
+            if (data.success) {
+                // Here we would ideally call a 'register' endpoint, but for now verifyOTP returns a token.
+                // We'll proceed to login.
+                login(role);
+            } else {
+                Alert.alert("Invalid OTP", "Please try again.");
+            }
+        },
+        onError: (err) => Alert.alert("Error", err.message)
+    });
 
     const handleSignup = () => {
-        if (role === 'client') {
-            router.replace('/(tabs)/home');
-        } else {
-            router.replace('/vendor/dashboard');
+        if (!name || !company || phoneNumber.length < 10) {
+            Alert.alert("Missing Fields", "Please fill in all details.");
+            return;
         }
+        const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
+        sendOTP.mutate({ phoneNumber: formattedPhone, role });
+    };
+
+    const handleVerify = () => {
+        if (otp.length < 4) {
+            Alert.alert("Invalid OTP", "Enter the code you received.");
+            return;
+        }
+        const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
+        verifyOTP.mutate({ phoneNumber: formattedPhone, code: otp, role });
     };
 
     return (
@@ -65,91 +106,119 @@ export default function SignupScreen() {
             <View style={styles.rightPanel}>
                 <View style={styles.formContainer}>
                     <View style={styles.header}>
-                        <Text style={styles.title}>Create Account</Text>
-                        <Text style={styles.subtitle}>Start your journey with Rork today.</Text>
+                        <Text style={styles.title}>{step === 'details' ? 'Create Account' : 'Verify Phone'}</Text>
+                        <Text style={styles.subtitle}>
+                            {step === 'details' ? 'Start your journey with Rork today.' : `Enter the code sent to ${phoneNumber}`}
+                        </Text>
                     </View>
 
                     {/* Role Selector */}
-                    <View style={styles.roleSelector}>
-                        <TouchableOpacity
-                            style={[styles.roleButton, role === 'client' && styles.roleButtonActive]}
-                            onPress={() => setRole('client')}
-                        >
-                            <Text style={[styles.roleText, role === 'client' && styles.roleTextActive]}>Advertiser</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.roleButton, role === 'vendor' && styles.roleButtonActive]}
-                            onPress={() => setRole('vendor')}
-                        >
-                            <Text style={[styles.roleText, role === 'vendor' && styles.roleTextActive]}>Media Owner</Text>
-                        </TouchableOpacity>
-                    </View>
+                    {step === 'details' && (
+                        <View style={styles.roleSelector}>
+                            <TouchableOpacity
+                                style={[styles.roleButton, role === 'client' && styles.roleButtonActive]}
+                                onPress={() => setRole('client')}
+                            >
+                                <Text style={[styles.roleText, role === 'client' && styles.roleTextActive]}>Advertiser</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.roleButton, role === 'vendor' && styles.roleButtonActive]}
+                                onPress={() => setRole('vendor')}
+                            >
+                                <Text style={[styles.roleText, role === 'vendor' && styles.roleTextActive]}>Media Owner</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
 
                     {/* Inputs */}
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Full Name</Text>
-                        <View style={styles.inputWrapper}>
-                            <User size={20} color={Colors.text.tertiary} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="John Doe"
-                                placeholderTextColor={Colors.text.tertiary}
-                                value={name}
-                                onChangeText={setName}
-                            />
-                        </View>
-                    </View>
+                    {step === 'details' ? (
+                        <>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Full Name</Text>
+                                <View style={styles.inputWrapper}>
+                                    <User size={20} color={Colors.text.tertiary} style={styles.inputIcon} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="John Doe"
+                                        placeholderTextColor={Colors.text.tertiary}
+                                        value={name}
+                                        onChangeText={setName}
+                                    />
+                                </View>
+                            </View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Company Name</Text>
-                        <View style={styles.inputWrapper}>
-                            <Building2 size={20} color={Colors.text.tertiary} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Acme Corp"
-                                placeholderTextColor={Colors.text.tertiary}
-                                value={company}
-                                onChangeText={setCompany}
-                            />
-                        </View>
-                    </View>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Company Name</Text>
+                                <View style={styles.inputWrapper}>
+                                    <Building2 size={20} color={Colors.text.tertiary} style={styles.inputIcon} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Acme Corp"
+                                        placeholderTextColor={Colors.text.tertiary}
+                                        value={company}
+                                        onChangeText={setCompany}
+                                    />
+                                </View>
+                            </View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Email Address</Text>
-                        <View style={styles.inputWrapper}>
-                            <Mail size={20} color={Colors.text.tertiary} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="name@company.com"
-                                placeholderTextColor={Colors.text.tertiary}
-                                value={email}
-                                onChangeText={setEmail}
-                            />
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Mobile Number</Text>
+                                <View style={styles.inputWrapper}>
+                                    <Phone size={20} color={Colors.text.tertiary} style={styles.inputIcon} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="9876543210"
+                                        placeholderTextColor={Colors.text.tertiary}
+                                        value={phoneNumber}
+                                        onChangeText={setPhoneNumber}
+                                        keyboardType="phone-pad"
+                                        maxLength={10}
+                                    />
+                                </View>
+                            </View>
+                        </>
+                    ) : (
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>OTP Code</Text>
+                            <View style={styles.inputWrapper}>
+                                <TextInput
+                                    style={[styles.input, { textAlign: 'center', letterSpacing: 8, fontSize: 24, fontWeight: '700' }]}
+                                    placeholder="123456"
+                                    placeholderTextColor={Colors.text.tertiary}
+                                    value={otp}
+                                    onChangeText={setOtp}
+                                    keyboardType="number-pad"
+                                    maxLength={6}
+                                    autoFocus
+                                />
+                            </View>
                         </View>
-                    </View>
-
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Password</Text>
-                        <View style={styles.inputWrapper}>
-                            <Lock size={20} color={Colors.text.tertiary} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="••••••••"
-                                placeholderTextColor={Colors.text.tertiary}
-                                secureTextEntry
-                                value={password}
-                                onChangeText={setPassword}
-                            />
-                        </View>
-                    </View>
+                    )}
 
                     <TouchableOpacity
-                        style={[styles.submitButton, { backgroundColor: role === 'client' ? Colors.primary : Colors.vendor.primary }]}
-                        onPress={handleSignup}
+                        style={[
+                            styles.submitButton,
+                            { backgroundColor: role === 'client' ? Colors.primary : Colors.vendor.primary },
+                            (sendOTP.isPending || verifyOTP.isPending) && { opacity: 0.7 }
+                        ]}
+                        onPress={step === 'details' ? handleSignup : handleVerify}
+                        disabled={sendOTP.isPending || verifyOTP.isPending}
                     >
-                        <Text style={styles.submitButtonText}>Create Account</Text>
-                        <ArrowRight size={20} color="#FFFFFF" />
+                        {sendOTP.isPending || verifyOTP.isPending ? (
+                            <ActivityIndicator color="#FFFFFF" />
+                        ) : (
+                            <>
+                                <Text style={styles.submitButtonText}>{step === 'details' ? 'Get OTP' : 'Verify & Create'}</Text>
+                                <ArrowRight size={20} color="#FFFFFF" />
+                            </>
+                        )}
                     </TouchableOpacity>
+
+                    {step === 'otp' && (
+                        <TouchableOpacity onPress={() => setStep('details')} style={styles.backLink}>
+                            <Text style={styles.footerLink}>Change Number</Text>
+                        </TouchableOpacity>
+                    )}
 
                     <View style={styles.footer}>
                         <Text style={styles.footerText}>Already have an account? </Text>
@@ -297,7 +366,6 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 16,
         color: Colors.text.primary,
-        outlineStyle: 'none',
     },
     submitButton: {
         flexDirection: 'row',

@@ -15,6 +15,7 @@ import {
   AlertCircle,
   Info,
   X,
+  BellOff,
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
@@ -102,11 +103,8 @@ export default function NotificationsScreen() {
       >
         {notifications.length === 0 ? (
           <View style={styles.emptyState}>
-            <Bell size={64} color={Colors.text.tertiary} />
-            <Text style={styles.emptyTitle}>No Notifications</Text>
-            <Text style={styles.emptyText}>
-              You're all caught up! Check back later for updates.
-            </Text>
+            <BellOff size={48} color={Colors.text.tertiary} />
+            <Text style={styles.emptyText}>You don&apos;t have any notifications</Text>
           </View>
         ) : (
           <>

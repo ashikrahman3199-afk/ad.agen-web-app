@@ -1,6 +1,8 @@
 import createContextHook from '@nkzw/create-context-hook';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useRouter, useSegments } from 'expo-router';
 import { AdSpace } from '@/constants/adSpaces';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface CartItem extends AdSpace {
   quantity: number;
@@ -47,7 +49,13 @@ export interface Notification {
   read: boolean;
 }
 
+export type UserRole = 'client' | 'vendor' | null;
+
 export const [AppProvider, useApp] = createContextHook(() => {
+  const router = useRouter();
+  const segments = useSegments();
+  const [userRole, setUserRole] = useState<UserRole>(null);
+
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<AdSpace[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -212,6 +220,45 @@ export const [AppProvider, useApp] = createContextHook(() => {
     return wishlist.some(item => item.id === id);
   }, [wishlist]);
 
+  const login = useCallback(async (role: 'client' | 'vendor', token?: string) => {
+    setUserRole(role);
+    if (token) {
+      await AsyncStorage.setItem('authToken', token);
+    }
+    if (role === 'client') {
+      router.replace('/(tabs)/home');
+    } else {
+      router.replace('/vendor/dashboard');
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    setUserRole(null);
+    await AsyncStorage.removeItem('authToken');
+    router.replace('/login');
+  }, []);
+
+  // Strict RBAC Redirection
+  useEffect(() => {
+    const inAuthGroup = segments[0] === '(auth)'; // Assuming login/signup are in (auth) or root
+    const inClientGroup = segments[0] === '(tabs)' || segments[0] === 'ad-services' || segments[0] === '(ad-space)' || segments[0] === 'campaigns'; // Add other client routes
+    const inVendorGroup = segments[0] === 'vendor';
+    const isLoginPage = segments[0] === 'login' || segments[0] === 'signup';
+
+    if (!userRole && !isLoginPage) {
+      // Allow public access or redirect to login? 
+      // For now, if no role and trying to access protected, go to login.
+      // router.replace('/login'); 
+      // Be careful with infinite loops.
+    }
+
+    if (userRole === 'client' && inVendorGroup) {
+      router.replace('/(tabs)/home');
+    } else if (userRole === 'vendor' && inClientGroup) {
+      router.replace('/vendor/dashboard');
+    }
+  }, [userRole, segments]);
+
   return useMemo(() => ({
     cart,
     addToCart,
@@ -250,5 +297,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
     setActiveGenre,
     searchQuery,
     setSearchQuery,
-  }), [cart, addToCart, removeFromCart, updateCartItemDuration, clearCart, cartTotal, cartItemCount, wishlist, addToWishlist, removeFromWishlist, isInWishlist, campaigns, createCampaign, updateCampaign, deleteCampaign, currentCampaign, bookings, createBooking, updateBooking, paymentMethods, addPaymentMethod, removePaymentMethod, notifications, markNotificationAsRead, markAllNotificationsAsRead, deleteNotification, unreadNotificationCount, selectedLocation, activeGenre, searchQuery]);
+    userRole,
+    login,
+    logout,
+  }), [cart, addToCart, removeFromCart, updateCartItemDuration, clearCart, cartTotal, cartItemCount, wishlist, addToWishlist, removeFromWishlist, isInWishlist, campaigns, createCampaign, updateCampaign, deleteCampaign, currentCampaign, bookings, createBooking, updateBooking, paymentMethods, addPaymentMethod, removePaymentMethod, notifications, markNotificationAsRead, markAllNotificationsAsRead, deleteNotification, unreadNotificationCount, selectedLocation, activeGenre, searchQuery, userRole, login, logout]);
 });

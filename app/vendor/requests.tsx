@@ -1,16 +1,32 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Check, X, Clock } from 'lucide-react-native';
+import { trpc } from '@/lib/trpc';
+import { Clock } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import WebLayout from '@/components/WebLayout';
 
 export default function VendorRequests() {
-    const requests = [
-        { id: '1', client: 'Nike India', space: 'VR Mall Billboard', date: 'Oct 15 - Nov 15', budget: '₹1.5L', status: 'Pending', time: '2h ago' },
-        { id: '2', client: 'Swiggy', space: 'Metro Station Digital', date: 'Oct 20 - Oct 25', budget: '₹45K', status: 'Pending', time: '5h ago' },
-        { id: '3', client: 'Zomato', space: 'Bus Shelter Network', date: 'Nov 01 - Nov 30', budget: '₹2.1L', status: 'Approved', time: '1d ago' },
-    ];
+    const { data: bookings } = trpc.bookings.list.useQuery();
+
+    interface Booking {
+        id: string;
+        clientId?: string;
+        startDate: string;
+        endDate: string;
+        totalAmount: number;
+        status: string;
+        createdAt: string;
+    }
+
+    const requests = (bookings as Booking[] | undefined)?.map((booking) => ({
+        id: booking.id,
+        client: booking.clientId || 'Client', // Fallback if no client name in booking
+        space: 'Start Date: ' + booking.startDate, // Placeholder as join is not implemented
+        date: `${booking.startDate} - ${booking.endDate}`,
+        budget: `₹${booking.totalAmount}`,
+        status: booking.status,
+        time: new Date(booking.createdAt).toLocaleDateString(),
+    })) || [];
 
     return (
         <WebLayout role="vendor" title="Booking Requests">
@@ -39,22 +55,17 @@ export default function VendorRequests() {
                             </View>
                             <View style={styles.detailItem}>
                                 <Text style={styles.label}>Status</Text>
-                                <Text style={[styles.value, { color: req.status === 'Pending' ? '#D97706' : '#059669' }]}>{req.status}</Text>
+                                <Text style={[styles.value, { color: req.status === 'Upcoming' ? '#0369A1' : '#15803D' }]}>{req.status}</Text>
                             </View>
                         </View>
 
-                        {req.status === 'Pending' && (
-                            <View style={styles.actions}>
-                                <TouchableOpacity style={[styles.btn, styles.declineBtn]}>
-                                    <X size={18} color={Colors.error} />
-                                    <Text style={styles.declineText}>Decline</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={[styles.btn, styles.acceptBtn]}>
-                                    <Check size={18} color="#FFFFFF" />
-                                    <Text style={styles.acceptText}>Accept Request</Text>
-                                </TouchableOpacity>
-                            </View>
-                        )}
+                        <View style={styles.actions}>
+                            <TouchableOpacity style={styles.updateBtn}>
+                                <Text style={styles.updateBtnText}>Update Progress</Text>
+                            </TouchableOpacity>
+                        </View>
+
+
                     </View>
                 ))}
             </View>
@@ -137,18 +148,16 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         borderRadius: 12,
     },
-    declineBtn: {
-        backgroundColor: '#FEF2F2',
+    updateBtn: {
+        backgroundColor: '#E0F2FE',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 8,
+        alignSelf: 'flex-start',
     },
-    declineText: {
-        color: Colors.error,
+    updateBtnText: {
+        color: Colors.primary,
         fontWeight: '600',
-    },
-    acceptBtn: {
-        backgroundColor: Colors.primary,
-    },
-    acceptText: {
-        color: '#FFFFFF',
-        fontWeight: '600',
+        fontSize: 14,
     },
 });
