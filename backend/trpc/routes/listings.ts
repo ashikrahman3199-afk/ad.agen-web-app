@@ -13,7 +13,7 @@ export const listingsRouter = createTRPCRouter({
                 price: z.number(), // Changed to number to match likely DB schema
                 location: z.string(),
                 description: z.string(),
-                status: z.enum(["Active", "Inactive", "Pending"]).default("Active"),
+                status: z.enum(["Active", "Inactive", "Pending"]).default("Pending"),
                 imageUrl: z.string().optional(),
                 slots: z.number().optional().default(1),
             })
@@ -21,15 +21,29 @@ export const listingsRouter = createTRPCRouter({
         .mutation(async ({ input }) => {
             const id = Date.now().toString(); // Simple ID generation
             const createdAt = new Date().toISOString();
-            const vendorId = "mock-vendor-id"; // Placeholder until auth is ready
+            const vendorId = "ashikrahman3199@gmail.com"; // Let's use the actual vendor email
 
             const item = {
                 id,
-                vendorId,
-                ...input,
+                title: input.name,
+                category: input.categoryId,
+                location: input.location,
+                price: input.price,
+                priceUnit: "Monthly",
+                rating: 0,
+                image: input.imageUrl || "",
+                description: input.description,
+                reach: "TBD",
+                minSpend: input.price,
+                features: [],
+                approvalStatus: input.status === "Pending" ? "PENDING" : input.status.toUpperCase(),
+                vendorId: vendorId,
+                owner: vendorId,
                 createdAt,
                 updatedAt: createdAt,
-                __typename: "Service", // Often used by Amplify/AppSync
+                __typename: "AdSpace", // Often used by Amplify/AppSync
+                _version: 1,
+                _lastChangedAt: Date.now(),
             };
 
             await db.send(
@@ -48,7 +62,13 @@ export const listingsRouter = createTRPCRouter({
                 TableName: TABLE_NAMES.SERVICE,
             })
         );
-        return result.Items || [];
+        // Only return services that are approved
+        return (result.Items || [])
+            .filter(item => item.approvalStatus === "APPROVED" || item.status === "Active")
+            .map(item => ({
+                ...item,
+                name: item.title || item.name, // Ensure compatibility with frontend expecting 'name'
+            }));
     }),
 
     get: publicProcedure
@@ -60,6 +80,6 @@ export const listingsRouter = createTRPCRouter({
                     Key: { id: input.id },
                 })
             );
-            return result.Item || null;
+            return result.Item ? { ...result.Item, name: result.Item.title || result.Item.name } : null;
         }),
 });

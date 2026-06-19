@@ -4,13 +4,167 @@ import { db } from "../../db";
 import { sns } from "../../lib/sns";
 import { PutCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
 import { PublishCommand } from "@aws-sdk/client-sns";
+import { CognitoIdentityProviderClient, InitiateAuthCommand, SignUpCommand } from "@aws-sdk/client-cognito-identity-provider";
 import { TABLE_NAMES } from "../../config";
 import { sign } from "hono/jwt";
 
 // Use a secure secret in production from environment variables!
 const JWT_SECRET = process.env.JWT_SECRET || "fallback-dev-secret-rork-2026";
 
+const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION || "ap-south-1" });
+const CLIENT_ID = "qi8njk53r44pfkfirmiid8681"; // User App / Vendor App Cognito Client ID
+
 export const authRouter = createTRPCRouter({
+    register: publicProcedure
+        .input(z.object({
+            email: z.string().email(),
+            password: z.string().min(6),
+            phoneNumber: z.string(),
+            role: z.enum(['client', 'vendor'])
+        }))
+        .mutation(async ({ input }) => {
+            const { email, password, phoneNumber, role } = input;
+            
+            const tableName = role === 'client' ? TABLE_NAMES.USER_PROFILE : TABLE_NAMES.VENDOR;
+            const prefix = role === 'client' ? 'User' : 'Vendor';
+            const userId = email.toLowerCase();
+
+            // 1. Create User in AWS Cognito
+            try {
+                await cognitoClient.send(new SignUpCommand({
+                    ClientId: CLIENT_ID,
+                    Username: email.toLowerCase(),
+                    Password: password,
+                    UserAttributes: [
+                        { Name: "email", Value: email.toLowerCase() },
+                        { Name: "phone_number", Value: phoneNumber }
+                    ]
+                }));
+            } catch (error: any) {
+                if (error.name === 'UsernameExistsException') {
+                    throw new Error("User with this email already exists.");
+                }
+                throw new Error(error.message || "Registration failed in Cognito");
+            }
+
+            // 2. Create Profile in DynamoDB
+            const userRecord = {
+                id: userId,
+                email: email.toLowerCase(),
+                phoneNumber,
+                role,
+                createdAt: new Date().toISOString(),
+                __typename: prefix,
+            };
+
+            await db.send(
+                new PutCommand({
+                    TableName: tableName,
+                    Item: userRecord,
+                })
+            );
+
+            // 3. Generate Local JWT
+            const payload = {
+                id: userId,
+                role: userRecord.role,
+                email: userRecord.email,
+                exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30, // 30 days
+            };
+
+            const token = await sign(payload, JWT_SECRET);
+
+            return {
+                success: true,
+                token,
+                user: {
+                    id: userId,
+                    role: userRecord.role,
+                    email: userRecord.email,
+                    phoneNumber: userRecord.phoneNumber
+                }
+            };
+        }),
+
+    login: publicProcedure
+        .input(z.object({
+            email: z.string().email(),
+            password: z.string(),
+            role: z.enum(['client', 'vendor'])
+        }))
+        .mutation(async ({ input }) => {
+            const { email, password, role } = input;
+            const userId = email.toLowerCase();
+
+            // 1. Authenticate with AWS Cognito
+            try {
+                await cognitoClient.send(new InitiateAuthCommand({
+                    AuthFlow: "USER_PASSWORD_AUTH",
+                    ClientId: CLIENT_ID,
+                    AuthParameters: {
+                        USERNAME: email.toLowerCase(),
+                        PASSWORD: password,
+                    }
+                }));
+            } catch (error: any) {
+                if (error.name === 'NotAuthorizedException' || error.name === 'UserNotFoundException') {
+                    throw new Error("Invalid email or password");
+                }
+                throw new Error(error.message || "Authentication failed");
+            }
+
+            // 2. Retrieve/Create DynamoDB Profile
+            const tableName = role === 'client' ? TABLE_NAMES.USER_PROFILE : TABLE_NAMES.VENDOR;
+            const prefix = role === 'client' ? 'User' : 'Vendor';
+            
+            const result = await db.send(
+                new GetCommand({
+                    TableName: tableName,
+                    Key: { id: userId },
+                })
+            );
+
+            let userRecord = result.Item;
+
+            if (!userRecord) {
+                // User exists in Cognito but profile might be missing in DynamoDB for this role
+                userRecord = {
+                    id: userId,
+                    email: email.toLowerCase(),
+                    role,
+                    createdAt: new Date().toISOString(),
+                    __typename: prefix,
+                };
+                await db.send(
+                    new PutCommand({
+                        TableName: tableName,
+                        Item: userRecord,
+                    })
+                );
+            }
+
+            // 3. Generate Local JWT
+            const payload = {
+                id: userId,
+                role: userRecord.role,
+                email: userRecord.email,
+                exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30, // 30 days
+            };
+
+            const token = await sign(payload, JWT_SECRET);
+
+            return {
+                success: true,
+                token,
+                user: {
+                    id: userId,
+                    role: userRecord.role,
+                    email: userRecord.email,
+                    phoneNumber: userRecord.phoneNumber
+                }
+            };
+        }),
+
     sendOTP: publicProcedure
         .input(z.object({ phoneNumber: z.string(), role: z.enum(['client', 'vendor']) }))
         .mutation(async ({ input }) => {
@@ -41,7 +195,7 @@ export const authRouter = createTRPCRouter({
                 await sns.send(
                     new PublishCommand({
                         PhoneNumber: phoneNumber,
-                        Message: `Your verification code for Rork is: ${code}`,
+                        Message: `Your verification code for ad.agen is: ${code}`,
                         MessageAttributes: {
                             'AWS.SNS.SMS.SMSType': {
                                 DataType: 'String',
@@ -50,10 +204,10 @@ export const authRouter = createTRPCRouter({
                         },
                     })
                 );
-                return { success: true, message: "OTP Sent" };
+                return { success: true, message: "OTP sent successfully" };
             } catch (error) {
                 console.error("SNS Error:", error);
-                throw new Error("Failed to send verification code. Please try again later.");
+                throw new Error("Failed to send OTP message. Please check the number and try again.");
             }
         }),
 

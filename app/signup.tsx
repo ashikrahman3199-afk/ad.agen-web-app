@@ -69,7 +69,7 @@ export default function SignupScreen() {
             {width > 900 && (
                 <View style={[styles.leftPanel, { backgroundColor: role === 'client' ? Colors.primary : Colors.vendor.primary }]}>
                     <View style={styles.brandContainer}>
-                        <Text style={styles.brandLogo}>Altd<Text style={[styles.brandHighlight, { color: role === 'client' ? Colors.accent : Colors.vendor.accent }]}>.</Text></Text>
+                        <Text style={styles.brandLogo}>ad<Text style={[styles.brandHighlight, { color: role === 'client' ? Colors.accent : Colors.vendor.accent }]}>.</Text>agen</Text>
                         <Text style={styles.brandTagline}>Join the Network</Text>
                     </View>
 
@@ -108,7 +108,7 @@ export default function SignupScreen() {
                     <View style={styles.header}>
                         <Text style={styles.title}>{step === 'details' ? 'Create Account' : 'Verify Phone'}</Text>
                         <Text style={styles.subtitle}>
-                            {step === 'details' ? 'Start your journey with Rork today.' : `Enter the code sent to ${phoneNumber}`}
+                            {step === 'details' ? 'Start your journey with ad.agen today.' : `Enter the code sent to ${phoneNumber}`}
                         </Text>
                     </View>
 
@@ -398,4 +398,8 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: Colors.primary,
     },
+    backLink: {
+        alignSelf: 'center',
+        marginBottom: 24,
+    }
 });

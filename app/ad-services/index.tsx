@@ -131,29 +131,20 @@ export default function AdServicesScreen() {
         }))
     ];
 
-    const filters = ['All', 'Billboards', 'Digital', 'Transit', 'Cinema', 'Airport'];
+
 
     // Filter Logic
     const filteredSpaces = spaces.filter(space => {
         const matchesLocation = location === 'All Chennai' || space.location === location;
 
-        // Match genre (category). Note: spaces mock data uses different casing/values than IDs.
-        // In a real app, data should be normalized. For now, we loosen the check or rely on ID if available.
-        // Checking if the space.genre matches the selected activeGenre (which is now an ID like 'cinema', 'newspaper')
-        // OR if activeGenre is 'All'.
-        // Existing mock data uses 'Outdoor', 'Digital', 'Cinema', 'Airline'.
-        // New IDs are lowercase: 'cinema', 'newspaper'.
-        // We might need to normalize the comparison.
         const normalizedSpaceGenre = space.genre?.toLowerCase();
         const normalizedActiveGenre = activeGenre.toLowerCase();
 
-        // This is a rough match for the mock data compatibility
         const matchesGenre = activeGenre === 'All' ||
             normalizedSpaceGenre === normalizedActiveGenre ||
             space.type.toLowerCase() === normalizedActiveGenre;
 
-        const matchesFilter = activeFilter === 'All' || space.type === activeFilter;
-        return matchesLocation && matchesGenre && matchesFilter;
+        return matchesLocation && matchesGenre;
     });
 
     return (
@@ -188,20 +179,6 @@ export default function AdServicesScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* Filter Tabs */}
-                <View style={styles.filterTabs}>
-                    {filters.map((filter) => (
-                        <TouchableOpacity
-                            key={filter}
-                            style={[styles.filterTab, activeFilter === filter && styles.activeFilterTab]}
-                            onPress={() => setActiveFilter(filter)}
-                        >
-                            <Text style={[styles.filterTabText, activeFilter === filter && styles.activeFilterTabText]}>
-                                {filter}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
 
                 {/* Spaces Grid */}
                 <View style={styles.grid}>

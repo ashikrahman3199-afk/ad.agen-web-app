@@ -39,7 +39,7 @@ export default function WebLayout({ children, role, title }: WebLayoutProps) {
         { icon: Search, label: 'Ad Services', path: '/ad-services' }, // Moved up
         { icon: Megaphone, label: 'My Campaigns', path: '/campaigns' },
         { icon: ShoppingBag, label: 'My Cart', path: '/(tabs)/cart' },
-        { icon: Settings, label: 'Settings', path: '/(tabs)/services' },
+        { icon: Settings, label: 'Settings', path: '/settings' },
     ] : [
         { icon: LayoutDashboard, label: 'Overview', path: '/vendor/dashboard' },
         { icon: ShoppingBag, label: 'Listings', path: '/vendor/listings' },
@@ -60,7 +60,7 @@ export default function WebLayout({ children, role, title }: WebLayoutProps) {
                 <View style={styles.sidebar}>
                     <View style={styles.sidebarHeader}>
                         <TouchableOpacity onPress={() => router.push(role === 'client' ? '/(tabs)/home' : '/vendor/dashboard')}>
-                            <Text style={styles.logo}>Altd<Text style={[styles.logoHighlight, { color: activeColor }]}>.</Text></Text>
+                            <Text style={styles.logo}>ad<Text style={[styles.logoHighlight, { color: activeColor }]}>.</Text>agen</Text>
                         </TouchableOpacity>
                         {width <= 768 && (
                             <TouchableOpacity onPress={() => setIsSidebarOpen(false)}>
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
         color: Colors.text.primary,
         outlineStyle: 'none',
         height: '100%',
-    },
+    } as any,
     iconButton: {
         position: 'relative',
         padding: 8,

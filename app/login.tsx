@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Dimensions, Platform, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Phone, ArrowRight, CheckCircle2 } from 'lucide-react-native';
+import { Phone, ArrowRight, CheckCircle2, Mail, Lock } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 import { trpc } from '@/lib/trpc';
@@ -12,57 +12,55 @@ export default function LoginScreen() {
   const router = useRouter();
   const { login } = useApp();
   const [role, setRole] = useState<'client' | 'vendor'>('client');
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [otp, setOtp] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const sendOTP = trpc.auth.sendOTP.useMutation({
+  const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
-      // In dev mode or fallback, we might get the code back
-      if (data.message.includes("Dev Code")) {
-        Alert.alert("Dev Mode", data.message);
-      } else {
-        Alert.alert("OTP Sent", "Please check your messages.");
-      }
-      setStep('otp');
-    },
-    onError: (err) => {
-      Alert.alert("Error", err.message);
-    }
-  });
-
-  const verifyOTP = trpc.auth.verifyOTP.useMutation({
-    onSuccess: (data) => {
+      setErrorMessage('');
       if (data.success && data.token) {
         login(role, data.token);
-      } else {
-        Alert.alert("Invalid OTP", "Please try again.");
       }
     },
     onError: (err) => {
-      Alert.alert("Error", err.message);
+      console.error("Login Error:", err);
+      setErrorMessage(err.message || "Failed to connect to the server. Please check your connection.");
     }
   });
 
-  const handleSendOTP = () => {
-    if (phoneNumber.length < 10) {
-      Alert.alert("Invalid Phone", "Please enter a valid mobile number.");
-      return;
+  const registerMutation = trpc.auth.register.useMutation({
+    onSuccess: (data) => {
+      setErrorMessage('');
+      if (data.success && data.token) {
+        login(role, data.token);
+      }
+    },
+    onError: (err) => {
+      console.error("Registration Error:", err);
+      setErrorMessage(err.message || "Failed to connect to the server.");
     }
-    // Format to E.164 if needed, for simplicity passing raw but ideally should be formatted
-    // Assuming backend handles or user enters +91... or just local numbers for now.
-    // Let's prepend +91 if not present for India context, or just pass as is.
-    const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
-    sendOTP.mutate({ phoneNumber: formattedPhone, role });
-  };
+  });
 
-  const handleVerifyOTP = () => {
-    if (otp.length < 4) {
-      Alert.alert("Invalid OTP", "Enter the code you received.");
+  const handleSubmit = () => {
+    setErrorMessage('');
+    if (!email || !password) {
+      setErrorMessage("Please fill in all required fields.");
       return;
     }
-    const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
-    verifyOTP.mutate({ phoneNumber: formattedPhone, code: otp, role });
+    
+    if (mode === 'register') {
+      if (!phoneNumber || phoneNumber.length < 10) {
+        setErrorMessage("Please enter a valid phone number.");
+        return;
+      }
+      const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
+      registerMutation.mutate({ email, password, phoneNumber: formattedPhone, role });
+    } else {
+      loginMutation.mutate({ email, password, role });
+    }
   };
 
   return (
@@ -71,7 +69,7 @@ export default function LoginScreen() {
       {width > 900 && (
         <View style={[styles.leftPanel, { backgroundColor: role === 'client' ? Colors.primary : Colors.vendor.primary }]}>
           <View style={styles.brandContainer}>
-            <Text style={styles.brandLogo}>Altd<Text style={[styles.brandHighlight, { color: role === 'client' ? Colors.accent : Colors.vendor.accent }]}>.</Text></Text>
+            <Text style={styles.brandLogo}>ad<Text style={[styles.brandHighlight, { color: role === 'client' ? Colors.accent : Colors.vendor.accent }]}>.</Text>agen</Text>
             <Text style={styles.brandTagline}>The Future of Ad Booking</Text>
           </View>
 
@@ -109,35 +107,64 @@ export default function LoginScreen() {
       <View style={styles.rightPanel}>
         <View style={styles.formContainer}>
           <View style={styles.header}>
-            <Text style={styles.title}>{step === 'phone' ? 'Welcome Back' : 'Verify OTP'}</Text>
+            <Text style={styles.title}>{mode === 'login' ? 'Welcome Back' : 'Create Account'}</Text>
             <Text style={styles.subtitle}>
-              {step === 'phone'
-                ? 'Enter your mobile number to sign in.'
-                : `Enter the code sent to ${phoneNumber}`
+              {mode === 'login'
+                ? 'Enter your credentials to sign in.'
+                : 'Sign up to get started.'
               }
             </Text>
           </View>
 
           {/* Role Selector */}
-          {step === 'phone' && (
-            <View style={styles.roleSelector}>
-              <TouchableOpacity
-                style={[styles.roleButton, role === 'client' && styles.roleButtonActive]}
-                onPress={() => setRole('client')}
-              >
-                <Text style={[styles.roleText, role === 'client' && styles.roleTextActive]}>Advertiser</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.roleButton, role === 'vendor' && styles.roleButtonActive]}
-                onPress={() => setRole('vendor')}
-              >
-                <Text style={[styles.roleText, role === 'vendor' && styles.roleTextActive]}>Media Owner</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+          <View style={styles.roleSelector}>
+            <TouchableOpacity
+              style={[styles.roleButton, role === 'client' && styles.roleButtonActive]}
+              onPress={() => setRole('client')}
+            >
+              <Text style={[styles.roleText, role === 'client' && styles.roleTextActive]}>Advertiser</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.roleButton, role === 'vendor' && styles.roleButtonActive]}
+              onPress={() => setRole('vendor')}
+            >
+              <Text style={[styles.roleText, role === 'vendor' && styles.roleTextActive]}>Media Owner</Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Inputs */}
-          {step === 'phone' ? (
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Email Address</Text>
+            <View style={styles.inputWrapper}>
+              <Mail size={20} color={Colors.text.tertiary} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="hello@example.com"
+                placeholderTextColor={Colors.text.tertiary}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Password</Text>
+            <View style={styles.inputWrapper}>
+              <Lock size={20} color={Colors.text.tertiary} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="********"
+                placeholderTextColor={Colors.text.tertiary}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+              />
+            </View>
+          </View>
+
+          {mode === 'register' && (
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Mobile Number</Text>
               <View style={styles.inputWrapper}>
@@ -153,55 +180,49 @@ export default function LoginScreen() {
                 />
               </View>
             </View>
-          ) : (
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>OTP Code</Text>
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  style={[styles.input, { textAlign: 'center', letterSpacing: 8, fontSize: 24, fontWeight: '700' }]}
-                  placeholder="123456"
-                  placeholderTextColor={Colors.text.tertiary}
-                  value={otp}
-                  onChangeText={setOtp}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  autoFocus
-                />
-              </View>
-            </View>
           )}
+
+          {errorMessage ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </View>
+          ) : null}
 
           <TouchableOpacity
             style={[
               styles.submitButton,
               { backgroundColor: role === 'client' ? Colors.primary : Colors.vendor.primary },
-              (sendOTP.isPending || verifyOTP.isPending) && { opacity: 0.7 }
+              (loginMutation.isPending || registerMutation.isPending) && { opacity: 0.7 }
             ]}
-            onPress={step === 'phone' ? handleSendOTP : handleVerifyOTP}
-            disabled={sendOTP.isPending || verifyOTP.isPending}
+            onPress={handleSubmit}
+            disabled={loginMutation.isPending || registerMutation.isPending}
           >
-            {sendOTP.isPending || verifyOTP.isPending ? (
+            {loginMutation.isPending || registerMutation.isPending ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <>
-                <Text style={styles.submitButtonText}>{step === 'phone' ? 'Get OTP' : 'Verify & Login'}</Text>
+                <Text style={styles.submitButtonText}>{mode === 'login' ? 'Sign In' : 'Sign Up'}</Text>
                 <ArrowRight size={20} color="#FFFFFF" />
               </>
             )}
-
           </TouchableOpacity>
 
-          {step === 'otp' && (
-            <TouchableOpacity onPress={() => setStep('phone')} style={styles.backLink}>
-              <Text style={styles.footerLink}>Change Number</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity onPress={() => setMode(mode === 'login' ? 'register' : 'login')} style={styles.backLink}>
+            <Text style={styles.termsText}>
+              {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
+              <Text style={[styles.footerLink, { color: role === 'client' ? Colors.primary : Colors.vendor.primary }]}>
+                {mode === 'login' ? "Sign Up" : "Sign In"}
+              </Text>
+            </Text>
+          </TouchableOpacity>
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Don&apos;t have an account? </Text>
-            <TouchableOpacity onPress={() => router.push('/signup')}>
-              <Text style={[styles.footerLink, { color: role === 'client' ? Colors.primary : Colors.vendor.primary }]}>Sign up</Text>
-            </TouchableOpacity>
+          <View style={styles.termsContainer}>
+            <Text style={styles.termsText}>
+              By continuing, you agree to our{' '}
+              <Text style={[styles.termsLink, { color: role === 'client' ? Colors.primary : Colors.vendor.primary }]}>Terms & Conditions</Text>
+              {' '}and{' '}
+              <Text style={[styles.termsLink, { color: role === 'client' ? Colors.primary : Colors.vendor.primary }]}>Privacy Policy</Text>.
+            </Text>
           </View>
         </View>
       </View>
@@ -360,14 +381,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 4,
+  termsContainer: {
+    paddingHorizontal: 20,
+    alignItems: 'center',
   },
-  footerText: {
-    fontSize: 14,
+  termsText: {
+    fontSize: 12,
     color: Colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  termsLink: {
+    fontWeight: '600',
   },
   footerLink: {
     fontSize: 14,
@@ -377,5 +402,19 @@ const styles = StyleSheet.create({
   backLink: {
     alignSelf: 'center',
     marginBottom: 24,
+  },
+  errorContainer: {
+    backgroundColor: '#FEE2E2',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
   }
 });

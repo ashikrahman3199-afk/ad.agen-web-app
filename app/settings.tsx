@@ -20,6 +20,7 @@ import {
   ChevronRight,
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import WebLayout from '@/components/WebLayout';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -113,14 +114,14 @@ export default function SettingsScreen() {
   ];
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen 
-        options={{ 
-          title: 'Settings',
-          headerShown: true,
-        }} 
-      />
-      
+    <WebLayout role="client" title="Settings">
+      <View style={styles.container}>
+        <Stack.Screen 
+          options={{ 
+            title: 'Settings',
+            headerShown: false, // hide header since WebLayout provides it
+          }} 
+        />
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
@@ -188,6 +189,7 @@ export default function SettingsScreen() {
         <View style={styles.bottomSpacer} />
       </ScrollView>
     </View>
+    </WebLayout>
   );
 }
 

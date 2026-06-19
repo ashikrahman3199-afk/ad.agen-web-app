@@ -8,6 +8,7 @@ import {
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import WebLayout from '@/components/WebLayout';
+import { trpc } from '@/lib/trpc';
 
 const { width } = Dimensions.get('window');
 
@@ -36,26 +37,7 @@ export default function HomeScreen() {
 
 
 
-  const topSpends = [
-    { id: 1, name: 'JioHotstar', category: 'Digital', image: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&q=80', rank: 1, color: '#A855F7' },
-    { id: 2, name: 'Hyderabad Airport', category: 'Airport', image: 'https://images.unsplash.com/photo-1569154941061-e231b4725ef1?w=400&q=80', rank: 2, color: '#10B981' },
-    { id: 3, name: 'Amazon MX Player', category: 'Digital', image: 'https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?w=400&q=80', rank: 3, color: '#3B82F6' },
-    { id: 4, name: 'Delhi Metro', category: 'Nontraditional', image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=400&q=80', rank: 4, color: '#EF4444' },
-  ];
-
-  const latestAdditions = [
-    { id: 1, name: 'Itanagar Airport', category: 'Airport', image: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&q=80' },
-    { id: 2, name: 'CP67 Mall, Mohali', category: 'Nontraditional', image: 'https://images.unsplash.com/photo-1519567241046-7f570eee3d9f?w=400&q=80' },
-    { id: 3, name: 'Chalo App', category: 'Digital', image: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400&q=80' },
-    { id: 4, name: 'Kannada News', category: 'Television', image: 'https://images.unsplash.com/photo-1593784991095-a205069470b6?w=400&q=80' },
-  ];
-
-  const recentlyViewed = [
-    { id: 1, name: 'Hoarding - Bandra West', image: 'https://images.unsplash.com/photo-1562613531-a1e13337c667?w=400&q=80' },
-    { id: 2, name: 'Hoarding - Chennai', image: 'https://images.unsplash.com/photo-1570737146902-8d4d6347f136?w=400&q=80' },
-    { id: 3, name: 'Times Of India', image: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&q=80' },
-    { id: 4, name: 'Mohamed Irfan', image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80' },
-  ];
+  const { data: listings = [], isLoading } = trpc.listings.list.useQuery();
 
   return (
     <WebLayout role="client" title="Home">
@@ -81,64 +63,61 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Top Media Spends */}
+        {/* What's New */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Top Media Spends</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>What's New</Text>
+            <TouchableOpacity><Text style={styles.seeAllText}>See All</Text></TouchableOpacity>
+          </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
-            {topSpends.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.mediaCard}
-                onPress={() => router.push('/ad-services')}
-              >
-                <Image source={{ uri: item.image }} style={styles.mediaImage} />
-                <View style={[styles.rankBadge, { backgroundColor: item.color }]}>
-                  <Text style={styles.rankText}>#{item.rank}</Text>
-                </View>
+            <TouchableOpacity style={styles.mediaCard} onPress={() => router.push('/custom-bundle')}>
+              <Image source={{ uri: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&q=80' }} style={styles.mediaImage} />
+              <View style={styles.bundleBadge}>
+                 <Text style={styles.bundleBadgeText}>Service</Text>
+              </View>
+              <View style={styles.bundleOverlay}>
+                 <Text style={styles.bundleTitle}>Create Custom Bundle</Text>
+              </View>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+
+        {/* Hot Picks for You! */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Hot Picks for You!</Text>
+            <TouchableOpacity><Text style={styles.seeAllText}>See All</Text></TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+            {isLoading ? <Text>Loading...</Text> : listings.slice(0, 5).map((item: any) => (
+              <TouchableOpacity key={item.id} style={styles.mediaCard} onPress={() => router.push(`/ad-space/${item.id}`)}>
+                <Image source={{ uri: item.imageUrl || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80' }} style={styles.mediaImage} />
                 <View style={styles.mediaContent}>
                   <Text style={styles.mediaName} numberOfLines={1}>{item.name}</Text>
-                  <Text style={styles.mediaCategory}>{item.category}</Text>
+                  <Text style={styles.mediaCategory}>{item.type || item.categoryId}</Text>
                 </View>
               </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
 
-        {/* Latest Addition */}
+        {/* All Ad Spaces */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Latest Addition</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
-            {latestAdditions.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.mediaCard}
-                onPress={() => router.push(`/ad-space/${item.id}`)}
-              >
-                <Image source={{ uri: item.image }} style={styles.mediaImage} />
-                <View style={styles.mediaContent}>
-                  <Text style={styles.mediaName} numberOfLines={1}>{item.name}</Text>
-                  <Text style={styles.mediaCategory}>{item.category}</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>All Ad Spaces</Text>
+            <Text style={styles.resultsText}>{listings.length} results</Text>
+          </View>
+          <View style={styles.verticalList}>
+            {listings.map((item: any) => (
+              <TouchableOpacity key={item.id} style={styles.verticalCard} onPress={() => router.push(`/ad-space/${item.id}`)}>
+                <Image source={{ uri: item.imageUrl || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80' }} style={styles.verticalImage} />
+                <View style={styles.verticalContent}>
+                    <Text style={styles.recentName} numberOfLines={2}>{item.name}</Text>
+                    <Text style={styles.mediaCategory}>{item.type || item.categoryId}</Text>
                 </View>
               </TouchableOpacity>
             ))}
-          </ScrollView>
-        </View>
-
-        {/* Recently Viewed */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recently Viewed</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
-            {recentlyViewed.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.recentCard}
-                onPress={() => router.push(`/ad-space/${item.id}`)}
-              >
-                <Image source={{ uri: item.image }} style={styles.recentImage} />
-                <Text style={styles.recentName} numberOfLines={2}>{item.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          </View>
         </View>
 
         {/* Agency Partner Banner */}
@@ -483,5 +462,68 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  seeAllText: {
+    color: Colors.primary,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  resultsText: {
+    color: Colors.text.secondary,
+    fontSize: 14,
+  },
+  bundleBadge: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  bundleBadgeText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  bundleOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  bundleTitle: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  verticalList: {
+    gap: 16,
+  },
+  verticalCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  verticalImage: {
+    width: 100,
+    height: 100,
+    backgroundColor: '#F3F4F6',
+  },
+  verticalContent: {
+    flex: 1,
+    padding: 16,
+    justifyContent: 'center',
   },
 });
