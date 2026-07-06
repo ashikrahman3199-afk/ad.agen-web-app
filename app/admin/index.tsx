@@ -9,10 +9,11 @@ import WebLayout from '@/components/WebLayout';
 export default function AdminDashboard() {
     const router = useRouter();
     const utils = trpc.useContext();
-    const [activeTab, setActiveTab] = React.useState<'services' | 'vendors'>('services');
+    const [activeTab, setActiveTab] = React.useState<'services' | 'vendors' | 'users'>('services');
 
     const { data: pendingServices, isLoading: isLoadingServices } = trpc.admin.getPendingServices.useQuery();
     const { data: vendors, isLoading: isLoadingVendors } = trpc.admin.getVendors.useQuery();
+    const { data: users, isLoading: isLoadingUsers } = trpc.admin.getUsers.useQuery();
     const approveMutation = trpc.admin.approveService.useMutation({
         onSuccess: () => {
             utils.admin.getPendingServices.invalidate();
@@ -45,6 +46,12 @@ export default function AdminDashboard() {
                         onPress={() => setActiveTab('vendors')}
                     >
                         <Text style={[styles.tabText, activeTab === 'vendors' && styles.activeTabText]}>Registered Vendors</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={[styles.tab, activeTab === 'users' && styles.activeTab]}
+                        onPress={() => setActiveTab('users')}
+                    >
+                        <Text style={[styles.tabText, activeTab === 'users' && styles.activeTabText]}>Registered Users</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -163,6 +170,45 @@ export default function AdminDashboard() {
                                                         <Text style={styles.bankLabel}>IFSC Code</Text>
                                                         <Text style={styles.bankValue}>{vendor.ifscCode || 'Not Provided'}</Text>
                                                     </View>
+                                                </View>
+                                            </View>
+                                        </View>
+                                    ))
+                                )}
+                            </ScrollView>
+                        )}
+                    </>
+                )}
+
+                {activeTab === 'users' && (
+                    <>
+                        <Text style={styles.sectionTitle}>Registered Users</Text>
+                        {isLoadingUsers ? (
+                            <View style={styles.loadingContainer}>
+                                <ActivityIndicator size="large" color={Colors.primary} />
+                            </View>
+                        ) : (
+                            <ScrollView contentContainerStyle={styles.listContainer}>
+                                {(!users || users.length === 0) ? (
+                                    <View style={styles.emptyState}>
+                                        <Text style={styles.emptyText}>No users registered yet.</Text>
+                                    </View>
+                                ) : (
+                                    users.map((user: any) => (
+                                        <View key={user.id} style={styles.vendorCard}>
+                                            <View style={styles.vendorHeader}>
+                                                <Text style={styles.vendorName}>{user.name || user.email}</Text>
+                                                <Text style={styles.vendorEmail}>{user.email}</Text>
+                                            </View>
+                                            
+                                            <View style={styles.vendorDetailsRow}>
+                                                <View style={styles.vendorDetailItem}>
+                                                    <Text style={styles.detailLabel}>Phone</Text>
+                                                    <Text style={styles.detailValue}>{user.phone || user.phoneNumber || 'N/A'}</Text>
+                                                </View>
+                                                <View style={styles.vendorDetailItem}>
+                                                    <Text style={styles.detailLabel}>Registered On</Text>
+                                                    <Text style={styles.detailValue}>{new Date(user.createdAt).toLocaleDateString()}</Text>
                                                 </View>
                                             </View>
                                         </View>

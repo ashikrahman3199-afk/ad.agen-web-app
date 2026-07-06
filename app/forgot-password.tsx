@@ -167,6 +167,18 @@ export default function ForgotPasswordScreen() {
               <Text style={styles.submitButtonText}>{step === 1 ? 'Send Reset Code' : 'Update Password'}</Text>
             )}
           </TouchableOpacity>
+
+          {step === 2 && (
+            <TouchableOpacity 
+              style={styles.resendContainer} 
+              onPress={handleSendCode}
+              disabled={forgotPasswordMutation.isPending}
+            >
+              <Text style={styles.resendText}>
+                Didn't receive the code? <Text style={[styles.resendLink, { color: isVendor ? Colors.vendor.primary : Colors.primary }]}>Resend</Text>
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </View>
@@ -305,5 +317,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
+  },
+  resendContainer: {
+    marginTop: 24,
+    alignItems: 'center',
+  },
+  resendText: {
+    color: Colors.text.secondary,
+    fontSize: 14,
+  },
+  resendLink: {
+    fontWeight: '700',
   }
 });

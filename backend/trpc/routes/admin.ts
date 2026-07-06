@@ -73,4 +73,20 @@ export const adminRouter = createTRPCRouter({
         );
         return result.Items || [];
     }),
+
+    getUsers: publicProcedure.query(async () => {
+        const result = await db.send(
+            new ScanCommand({
+                TableName: TABLE_NAMES.USER_PROFILE,
+                FilterExpression: "#r = :client",
+                ExpressionAttributeNames: {
+                    "#r": "role",
+                },
+                ExpressionAttributeValues: {
+                    ":client": "client",
+                },
+            })
+        );
+        return result.Items || [];
+    }),
 });
