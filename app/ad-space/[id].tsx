@@ -1,54 +1,88 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, TextInput } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MapPin, Star, CheckCircle2, Heart, ArrowLeft, Calendar } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { adSpaces } from '@/constants/adSpaces';
+import { trpc } from '@/lib/trpc';
 import WebLayout from '@/components/WebLayout';
 import { useApp } from '@/contexts/AppContext';
+import { categoryFieldsMap } from '@/constants/categoryFields';
 
 const { width } = Dimensions.get('window');
 
 export default function AdSpaceDetails() {
     const { id } = useLocalSearchParams();
     const router = useRouter();
-    const { addToCart } = useApp();
-    const [selectedDuration, setSelectedDuration] = useState('1 Week');
+    const { addToCart, wishlist, addToWishlist, removeFromWishlist, isInWishlist } = useApp();
+    const [duration, setDuration] = useState(1);
+    const [activeImageIndex, setActiveImageIndex] = useState(0);
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
 
-    const adSpace = adSpaces.find(s => s.id === id) || adSpaces[0];
+    const { data: adSpace, isLoading } = trpc.listings.get.useQuery({ id: id as string });
+    
+    const isFavourite = adSpace ? isInWishlist(adSpace.id) : false;
+    const categoryConfig = adSpace ? categoryFieldsMap[adSpace.category || adSpace.categoryId || adSpace.type] || null : null;
 
-    const features = [
-        'Prime location',
-        'LED display',
-        '24/7 visibility',
-        'High traffic area'
-    ];
+    const handleToggleWishlist = () => {
+        if (isFavourite) {
+            removeFromWishlist(adSpace.id);
+        } else {
+            addToWishlist(adSpace);
+        }
+    };
 
-    const priceRanges = [
-        { label: 'Peak Season', price: '₹97,500', period: 'per week', dates: 'Dec - Feb' },
-        { label: 'Regular', price: '₹75,000', period: 'per week', dates: 'Mar - Aug' },
-        { label: 'Off Season', price: '₹60,000', period: 'per week', dates: 'Sep - Nov' },
-    ];
-
-    const durations = [
-        { label: '1 Week', discount: null },
-        { label: '2 Weeks', discount: '-5%' },
-        { label: '1 Month', discount: '-10%' },
-        { label: '3 Months', discount: '-20%' },
-    ];
+    // Set initial duration when data loads
+    React.useEffect(() => {
+        if (adSpace) {
+            setDuration(adSpace.minDuration || 1);
+        }
+    }, [adSpace]);
 
     const handleAddToCart = () => {
+        if (!adSpace) return;
         addToCart({
             id: adSpace.id,
-            name: adSpace.name,
+            name: adSpace.title,
             price: adSpace.price,
-            image: adSpace.image,
+            image: adSpace.images?.length ? adSpace.images[0] : adSpace.image,
             location: adSpace.location,
-            duration: 7, // Default to 1 week for now
-            quantity: 1
+            duration: duration,
+            quantity: duration,
         });
         router.push('/(tabs)/cart');
     };
+
+    const handleScroll = (event: any) => {
+        const slideSize = event.nativeEvent.layoutMeasurement.width;
+        const index = Math.round(event.nativeEvent.contentOffset.x / slideSize);
+        setActiveImageIndex(index);
+    };
+
+    if (isLoading) {
+        return (
+            <WebLayout role="client" title="Space Details">
+                <View style={[styles.container, { padding: 40, alignItems: 'center' }]}>
+                    <Text>Loading details...</Text>
+                </View>
+            </WebLayout>
+        );
+    }
+
+    if (!adSpace) {
+        return (
+            <WebLayout role="client" title="Space Details">
+                <View style={[styles.container, { padding: 40, alignItems: 'center' }]}>
+                    <Text>Space not found.</Text>
+                </View>
+            </WebLayout>
+        );
+    }
+
+    const images = adSpace.images?.length > 0 ? adSpace.images : [adSpace.image || 'https://via.placeholder.com/600x400'];
+    const minDuration = adSpace.minDuration || 1;
+    const durationUnit = adSpace.priceUnit || 'Days';
+    const totalPrice = adSpace.price * duration;
 
     return (
         <WebLayout role="client" title="Space Details">
@@ -61,92 +95,133 @@ export default function AdSpaceDetails() {
                 <View style={styles.contentGrid}>
                     {/* Left Column - Images & Main Info */}
                     <View style={styles.mainContent}>
-                        <Image source={{ uri: adSpace.image }} style={styles.heroImage} />
+                        <View style={styles.carouselContainer}>
+                            <Image source={{ uri: images[activeImageIndex] }} style={styles.heroImage} />
+                            {images.length > 1 && (
+                                <View style={styles.pagination}>
+                                    {images.map((_, idx) => (
+                                        <View key={idx} style={[styles.dot, activeImageIndex === idx && styles.activeDot]} />
+                                    ))}
+                                </View>
+                            )}
+                        </View>
 
                         <View style={styles.headerSection}>
-                            <Text style={styles.title}>{adSpace.name}</Text>
+                            <Text style={styles.title}>{adSpace.name || adSpace.title}</Text>
                             <View style={styles.locationRow}>
                                 <MapPin size={16} color={Colors.text.tertiary} />
-                                <Text style={styles.locationText}>{adSpace.location.address}</Text>
+                                <Text style={styles.locationText}>{adSpace.location}, Chennai</Text>
                             </View>
-                            <Text style={styles.impressions}>500K+ daily impressions</Text>
+                            <Text style={styles.impressions}>{adSpace.reach}</Text>
                         </View>
+
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>About This Space</Text>
+                            <Text style={styles.descriptionText}>{adSpace.description}</Text>
+                        </View>
+
+                        {/* Dynamic Metadata Details */}
+                        {adSpace.metadata && Object.keys(adSpace.metadata).length > 0 && (
+                            <View style={styles.section}>
+                                <Text style={styles.sectionTitle}>Specifications</Text>
+                                <View style={styles.metaGrid}>
+                                    {Object.entries(adSpace.metadata).map(([key, value]) => {
+                                        if (!value) return null;
+                                        const fieldConfig = categoryConfig?.fields.find((f: any) => f.name === key);
+                                        const label = fieldConfig ? fieldConfig.label : key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                                        return (
+                                            <View key={key} style={styles.metaItem}>
+                                                <Text style={styles.metaLabel}>{label}</Text>
+                                                <Text style={styles.metaValue}>{String(value)}</Text>
+                                            </View>
+                                        );
+                                    })}
+                                </View>
+                            </View>
+                        )}
 
                         <View style={styles.section}>
                             <Text style={styles.sectionTitle}>Features</Text>
                             <View style={styles.featuresList}>
-                                {features.map((feature, index) => (
+                                {adSpace.features && adSpace.features.length > 0 ? adSpace.features.map((feature: string, index: number) => (
                                     <View key={index} style={styles.featureItem}>
                                         <CheckCircle2 size={20} color={Colors.success} />
                                         <Text style={styles.featureText}>{feature}</Text>
                                     </View>
-                                ))}
+                                )) : <Text style={{ color: Colors.text.tertiary }}>No features listed</Text>}
                             </View>
                         </View>
 
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Price Ranges</Text>
-                            <View style={styles.priceGrid}>
-                                {priceRanges.map((range, index) => (
-                                    <View key={index} style={styles.priceCard}>
-                                        <View style={styles.priceHeader}>
-                                            <Text style={styles.priceLabel}>{range.label}</Text>
-                                            <Text style={styles.priceDates}>{range.dates}</Text>
-                                        </View>
-                                        <Text style={styles.rangePrice}>{range.price} <Text style={styles.rangePeriod}>{range.period}</Text></Text>
-                                    </View>
-                                ))}
-                            </View>
-                        </View>
-
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Available Dates</Text>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.datesScroll}>
-                                {[15, 20, 25, 1].map((day, i) => (
-                                    <View key={i} style={styles.dateCard}>
-                                        <Text style={styles.dateMonth}>{i === 3 ? 'Feb' : 'Jan'}</Text>
-                                        <Text style={styles.dateDay}>{day}</Text>
-                                        <View style={[styles.statusDot, { backgroundColor: i === 1 ? '#10B981' : i === 2 ? '#F59E0B' : '#10B981' }]} />
-                                    </View>
-                                ))}
-                            </ScrollView>
-                            <View style={styles.legend}>
-                                <View style={styles.legendItem}><View style={[styles.statusDot, { backgroundColor: '#10B981' }]} /><Text style={styles.legendText}>Available</Text></View>
-                                <View style={styles.legendItem}><View style={[styles.statusDot, { backgroundColor: '#F59E0B' }]} /><Text style={styles.legendText}>Limited</Text></View>
-                                <View style={styles.legendItem}><View style={[styles.statusDot, { backgroundColor: '#EF4444' }]} /><Text style={styles.legendText}>Booked</Text></View>
-                            </View>
-                        </View>
-
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Select Duration</Text>
-                            <View style={styles.durationGrid}>
-                                {durations.map((item) => (
-                                    <TouchableOpacity
-                                        key={item.label}
-                                        style={[styles.durationCard, selectedDuration === item.label && styles.durationCardActive]}
-                                        onPress={() => setSelectedDuration(item.label)}
-                                    >
-                                        {item.discount && (
-                                            <View style={styles.discountBadge}>
-                                                <Text style={styles.discountText}>{item.discount}</Text>
-                                            </View>
-                                        )}
-                                        <Text style={[styles.durationText, selectedDuration === item.label && styles.durationTextActive]}>{item.label}</Text>
-                                    </TouchableOpacity>
-                                ))}
+                            <Text style={styles.sectionTitle}>Pricing Structure</Text>
+                            <View style={styles.priceCard}>
+                                <View style={styles.priceHeader}>
+                                    <Text style={styles.priceLabel}>Vendor Rate</Text>
+                                    <Text style={styles.priceDates}>Minimum required: {minDuration} {durationUnit}</Text>
+                                </View>
+                                <Text style={styles.rangePrice}>₹{adSpace.price.toLocaleString()} <Text style={styles.rangePeriod}>per {durationUnit}</Text></Text>
                             </View>
                         </View>
                     </View>
 
-                    {/* Right Column - Sticky Booking Card (Desktop) / Bottom Bar (Mobile style) */}
+                    {/* Right Column - Sticky Booking Card */}
                     <View style={styles.sidebar}>
                         <View style={styles.bookingCard}>
+                            <View style={styles.dateSelector}>
+                                <Text style={styles.durationLabel}>Select Dates</Text>
+                                <View style={styles.dateInputRow}>
+                                    <View style={styles.dateInputContainer}>
+                                        <Text style={styles.dateInputLabel}>Start Date</Text>
+                                        <TextInput 
+                                            style={styles.dateInput} 
+                                            placeholder="YYYY-MM-DD"
+                                            value={startDate}
+                                            onChangeText={setStartDate}
+                                        />
+                                    </View>
+                                    <View style={styles.dateInputContainer}>
+                                        <Text style={styles.dateInputLabel}>End Date</Text>
+                                        <TextInput 
+                                            style={styles.dateInput} 
+                                            placeholder="YYYY-MM-DD"
+                                            value={endDate}
+                                            onChangeText={setEndDate}
+                                        />
+                                    </View>
+                                </View>
+                            </View>
+
+                            <View style={styles.durationSelector}>
+                                <Text style={styles.durationLabel}>Select Duration</Text>
+                                <View style={styles.stepperContainer}>
+                                    <TouchableOpacity 
+                                        style={[styles.stepperBtn, duration <= minDuration && styles.stepperBtnDisabled]} 
+                                        onPress={() => setDuration(prev => Math.max(minDuration, prev - 1))}
+                                        disabled={duration <= minDuration}
+                                    >
+                                        <Text style={styles.stepperBtnText}>-</Text>
+                                    </TouchableOpacity>
+                                    <View style={styles.stepperValueContainer}>
+                                        <Text style={styles.stepperValue}>{duration}</Text>
+                                        <Text style={styles.stepperUnit}>{durationUnit}</Text>
+                                    </View>
+                                    <TouchableOpacity 
+                                        style={styles.stepperBtn} 
+                                        onPress={() => setDuration(prev => prev + 1)}
+                                    >
+                                        <Text style={styles.stepperBtnText}>+</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            <View style={styles.divider} />
+
                             <Text style={styles.totalLabel}>Total Amount</Text>
-                            <Text style={styles.totalPrice}>₹75,000</Text>
+                            <Text style={styles.totalPrice}>₹{totalPrice.toLocaleString()} <Text style={styles.rangePeriod}>for {duration} {durationUnit}</Text></Text>
 
                             <View style={styles.actionRow}>
-                                <TouchableOpacity style={styles.wishlistBtn}>
-                                    <Heart size={24} color={Colors.primary} />
+                                <TouchableOpacity style={styles.wishlistBtn} onPress={handleToggleWishlist}>
+                                    <Heart size={24} color={isFavourite ? "#EF4444" : Colors.primary} fill={isFavourite ? "#EF4444" : "none"} />
                                 </TouchableOpacity>
                                 <TouchableOpacity style={styles.addToCartBtn} onPress={handleAddToCart}>
                                     <Text style={styles.addToCartText}>Add to Cart</Text>
@@ -169,6 +244,7 @@ const styles = StyleSheet.create({
     backButton: {
         flexDirection: 'row',
         alignItems: 'center',
+        alignSelf: 'flex-start',
         gap: 8,
         marginBottom: 24,
     },
@@ -192,10 +268,11 @@ const styles = StyleSheet.create({
     },
     heroImage: {
         width: '100%',
-        height: 300,
+        height: 350,
         borderRadius: 24,
         marginBottom: 24,
         backgroundColor: '#F3F4F6',
+        resizeMode: 'cover',
     },
     headerSection: {
         marginBottom: 32,
@@ -229,6 +306,11 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: Colors.text.primary,
         marginBottom: 16,
+    },
+    descriptionText: {
+        fontSize: 16,
+        color: Colors.text.secondary,
+        lineHeight: 24,
     },
     featuresList: {
         gap: 12,
@@ -409,5 +491,135 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: '700',
         color: '#FFFFFF',
+    },
+    carouselContainer: {
+        marginBottom: 24,
+    },
+    carousel: {
+        width: '100%',
+    },
+    pagination: {
+        flexDirection: 'row',
+        position: 'absolute',
+        bottom: 16,
+        alignSelf: 'center',
+        gap: 8,
+    },
+    dot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    },
+    activeDot: {
+        backgroundColor: '#FFFFFF',
+        width: 12,
+    },
+    durationSelector: {
+        marginBottom: 24,
+    },
+    durationLabel: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: Colors.text.primary,
+        marginBottom: 12,
+    },
+    stepperContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#F9FAFB',
+        borderRadius: 16,
+        padding: 8,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    stepperBtn: {
+        width: 40,
+        height: 40,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        ...Colors.shadow.small,
+    },
+    stepperBtnDisabled: {
+        opacity: 0.5,
+    },
+    stepperBtnText: {
+        fontSize: 24,
+        fontWeight: '600',
+        color: Colors.primary,
+    },
+    metaGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 16,
+    },
+    metaItem: {
+        width: '45%',
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+    },
+    metaLabel: {
+        fontSize: 14,
+        color: Colors.text.tertiary,
+        marginBottom: 4,
+    },
+    metaValue: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: Colors.text.primary,
+    },
+    dateSelector: {
+        marginBottom: 24,
+    },
+    dateInputRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 12,
+    },
+    dateInputContainer: {
+        flex: 1,
+    },
+    dateInputLabel: {
+        fontSize: 12,
+        color: Colors.text.secondary,
+        marginBottom: 6,
+    },
+    dateInput: {
+        backgroundColor: '#F9FAFB',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 12,
+        padding: 12,
+        fontSize: 14,
+        color: Colors.text.primary,
+    },
+    stepperValueContainer: {
+        fontSize: 24,
+        fontWeight: '600',
+        color: Colors.primary,
+    },
+    stepperValueContainer: {
+        alignItems: 'center',
+    },
+    stepperValue: {
+        fontSize: 20,
+        fontWeight: '800',
+        color: Colors.text.primary,
+    },
+    stepperUnit: {
+        fontSize: 12,
+        color: Colors.text.secondary,
+        textTransform: 'uppercase',
+    },
+    divider: {
+        height: 1,
+        backgroundColor: '#E5E7EB',
+        marginBottom: 24,
     },
 });

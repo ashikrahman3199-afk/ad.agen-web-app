@@ -13,7 +13,7 @@ export default function TermsScreen() {
     <View style={styles.container}>
       <Stack.Screen 
         options={{ 
-          title: 'Terms of Service',
+          title: 'Terms & Conditions',
           headerShown: true,
         }} 
       />
@@ -23,76 +23,100 @@ export default function TermsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        <Text style={styles.lastUpdated}>Last updated: January 20, 2025</Text>
+        <Text style={styles.title}>USER TERMS & CONDITIONS – ad.agen</Text>
 
-        <Text style={styles.section}>
-          <Text style={styles.sectionTitle}>1. Acceptance of Terms{'\n'}</Text>
-          <Text style={styles.text}>
-            By accessing and using this advertising platform, you accept and agree to be bound by the terms and provision of this agreement.
-          </Text>
+        <Text style={styles.sectionTitle}>1. INTRODUCTION</Text>
+        <Text style={styles.paragraph}>
+          These Terms govern the use of ad.agen by Users.{'\n'}
+          By using the Platform, you agree to these Terms.
         </Text>
 
-        <Text style={styles.section}>
-          <Text style={styles.sectionTitle}>2. Use License{'\n'}</Text>
-          <Text style={styles.text}>
-            Permission is granted to temporarily download one copy of the materials on the platform for personal, non-commercial transitory viewing only.
-          </Text>
+        <Text style={styles.sectionTitle}>2. PLATFORM ROLE</Text>
+        <Text style={styles.paragraph}>
+          2.1 ad.agen is an intermediary marketplace connecting Users and Vendors.{'\n'}
+          2.2 The Company does not directly provide Vendor services.
         </Text>
 
-        <Text style={styles.section}>
-          <Text style={styles.sectionTitle}>3. Booking and Payment{'\n'}</Text>
-          <Text style={styles.text}>
-            All bookings are subject to availability and confirmation. Payment must be completed at the time of booking. Prices are subject to change without notice.
-          </Text>
+        <Text style={styles.sectionTitle}>3. USER ELIGIBILITY</Text>
+        <Text style={styles.paragraph}>
+          Users must be 18 years or older.
         </Text>
 
-        <Text style={styles.section}>
-          <Text style={styles.sectionTitle}>4. Cancellation Policy{'\n'}</Text>
-          <Text style={styles.text}>
-            Cancellations made 48 hours or more before the start date will receive a full refund minus processing fees. Cancellations within 48 hours are non-refundable.
-          </Text>
+        <Text style={styles.sectionTitle}>4. USER RESPONSIBILITIES</Text>
+        <Text style={styles.paragraph}>
+          Users shall:{'\n'}
+          (a) provide accurate information;{'\n'}
+          (b) comply with applicable law;{'\n'}
+          (c) not misuse the Platform.
         </Text>
 
-        <Text style={styles.section}>
-          <Text style={styles.sectionTitle}>5. Content Guidelines{'\n'}</Text>
-          <Text style={styles.text}>
-            All advertising content must comply with applicable laws and regulations. We reserve the right to reject any content that is deemed inappropriate, offensive, or misleading.
-          </Text>
+        <Text style={styles.sectionTitle}>5. PAYMENTS</Text>
+        <Text style={styles.paragraph}>
+          5.1 Payments are processed via Cashfree Payments India Pvt. Ltd..{'\n'}
+          5.2 The Platform is not responsible for:{'\n'}
+          (a) bank failures;{'\n'}
+          (b) gateway downtime.
         </Text>
 
-        <Text style={styles.section}>
-          <Text style={styles.sectionTitle}>6. Intellectual Property{'\n'}</Text>
-          <Text style={styles.text}>
-            All content provided through the platform remains the property of its respective owners. Users retain all rights to their advertising content.
-          </Text>
+        <Text style={styles.sectionTitle}>6. REFUNDS & CANCELLATIONS</Text>
+        <Text style={styles.paragraph}>
+          6.1 Refunds are governed by the Refund Policy.{'\n'}
+          6.2 Refund timelines depend on banking systems.
         </Text>
 
-        <Text style={styles.section}>
-          <Text style={styles.sectionTitle}>7. Limitation of Liability{'\n'}</Text>
-          <Text style={styles.text}>
-            The platform shall not be liable for any indirect, incidental, special, consequential or punitive damages resulting from your use of the service.
-          </Text>
+        <Text style={styles.sectionTitle}>7. PROHIBITED ACTIVITIES</Text>
+        <Text style={styles.paragraph}>
+          Users shall not:{'\n'}
+          (a) engage in fraud;{'\n'}
+          (b) abuse Vendors;{'\n'}
+          (c) violate laws.
         </Text>
 
-        <Text style={styles.section}>
-          <Text style={styles.sectionTitle}>8. Modifications{'\n'}</Text>
-          <Text style={styles.text}>
-            We reserve the right to modify these terms at any time. Continued use of the platform after changes constitutes acceptance of the modified terms.
-          </Text>
+        <Text style={styles.sectionTitle}>8. CONTENT & INTELLECTUAL PROPERTY</Text>
+        <Text style={styles.paragraph}>
+          All Platform intellectual property belongs to Mono Marketing Enterprises Pvt. Ltd.
         </Text>
 
-        <Text style={styles.section}>
-          <Text style={styles.sectionTitle}>9. Governing Law{'\n'}</Text>
-          <Text style={styles.text}>
-            These terms shall be governed and construed in accordance with the laws of India, without regard to its conflict of law provisions.
-          </Text>
+        <Text style={styles.sectionTitle}>9. PRIVACY</Text>
+        <Text style={styles.paragraph}>
+          User data shall be processed as per the Privacy Policy.
         </Text>
 
-        <Text style={styles.section}>
-          <Text style={styles.sectionTitle}>10. Contact Information{'\n'}</Text>
-          <Text style={styles.text}>
-            If you have any questions about these Terms, please contact us at legal@adplatform.com
-          </Text>
+        <Text style={styles.sectionTitle}>10. DISCLAIMER</Text>
+        <Text style={styles.paragraph}>
+          The Platform does not guarantee:{'\n'}
+          (a) Vendor performance;{'\n'}
+          (b) service quality;{'\n'}
+          (c) business outcomes.
+        </Text>
+
+        <Text style={styles.sectionTitle}>11. LIMITATION OF LIABILITY</Text>
+        <Text style={styles.paragraph}>
+          The Company is not liable for:{'\n'}
+          (a) Vendor conduct;{'\n'}
+          (b) indirect damages;{'\n'}
+          (c) payment failures.
+        </Text>
+
+        <Text style={styles.sectionTitle}>12. TERMINATION</Text>
+        <Text style={styles.paragraph}>
+          Accounts may be suspended for violations or suspicious activity.
+        </Text>
+
+        <Text style={styles.sectionTitle}>13. GOVERNING LAW</Text>
+        <Text style={styles.paragraph}>
+          Governed by Indian law.{'\n'}
+          Jurisdiction: Chennai, Tamil Nadu.
+        </Text>
+
+        <Text style={styles.sectionTitle}>14. DISPUTE RESOLUTION</Text>
+        <Text style={styles.paragraph}>
+          Disputes subject to arbitration in Chennai.
+        </Text>
+
+        <Text style={styles.sectionTitle}>15. CONTACT</Text>
+        <Text style={styles.paragraph}>
+          support@monomarketers.com
         </Text>
 
         <View style={styles.bottomSpacer} />
@@ -112,21 +136,21 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 24,
   },
-  lastUpdated: {
-    fontSize: 12,
-    color: Colors.text.tertiary,
+  title: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: Colors.text.primary,
     marginBottom: 24,
-  },
-  section: {
-    marginBottom: 24,
+    textAlign: 'center',
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700' as const,
+    fontWeight: '700',
     color: Colors.text.primary,
+    marginTop: 20,
     marginBottom: 8,
   },
-  text: {
+  paragraph: {
     fontSize: 15,
     color: Colors.text.secondary,
     lineHeight: 24,

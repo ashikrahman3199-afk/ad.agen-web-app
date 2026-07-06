@@ -1,18 +1,52 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Plus, MapPin, MoreHorizontal, Edit } from 'lucide-react-native';
+import { Plus, MapPin, MoreHorizontal, Edit, Trash2, Pause, Play } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import WebLayout from '@/components/WebLayout';
+
+import { trpc } from '@/lib/trpc';
 
 export default function VendorListings() {
     const router = useRouter();
 
-    const listings = [
-        { id: '1', name: 'VR Mall Billboard', location: 'Anna Nagar, Chennai', type: 'Billboard', price: '₹15,000/day', status: 'Active', image: 'https://images.unsplash.com/photo-1562613531-a1e13337c667?w=800&q=80' },
-        { id: '2', name: 'Metro Station Digital', location: 'Central Station', type: 'Digital Screen', price: '₹5,000/day', status: 'Active', image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&q=80' },
-        { id: '3', name: 'Bus Shelter Network', location: 'OMR, Chennai', type: 'Transit', price: '₹8,000/day', status: 'Maintenance', image: 'https://images.unsplash.com/photo-1570737146902-8d4d6347f136?w=800&q=80' },
-    ];
+    const { data: rawListings } = trpc.listings.myListings.useQuery();
+    
+    const listings = rawListings?.map(item => ({
+        id: item.id,
+        name: item.title,
+        location: item.location,
+        type: item.category,
+        price: `₹${item.price}/${item.priceUnit}`,
+        status: item.status || 'Active',
+        approvalStatus: item.approvalStatus || 'PENDING',
+        image: item.images?.length ? item.images[0] : (item.image || 'https://via.placeholder.com/400x300')
+    })) || [];
+
+    const utils = trpc.useUtils();
+
+    const deleteMutation = trpc.listings.delete.useMutation({
+        onSuccess: () => {
+            utils.listings.myListings.invalidate();
+        }
+    });
+
+    const updateStatusMutation = trpc.listings.updateStatus.useMutation({
+        onSuccess: () => {
+            utils.listings.myListings.invalidate();
+        }
+    });
+
+    const handleDelete = (id: string) => {
+        if (confirm('Are you sure you want to delete this listing?')) {
+            deleteMutation.mutate({ id });
+        }
+    };
+
+    const handleToggleStatus = (id: string, currentStatus: string) => {
+        const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+        updateStatusMutation.mutate({ id, status: newStatus as any });
+    };
 
     return (
         <WebLayout role="vendor" title="My Listings">
@@ -32,11 +66,16 @@ export default function VendorListings() {
                     <Text style={[styles.col, { flex: 3 }]}>Listing Details</Text>
                     <Text style={[styles.col, { flex: 1 }]}>Type</Text>
                     <Text style={[styles.col, { flex: 1 }]}>Price</Text>
-                    <Text style={[styles.col, { flex: 1 }]}>Status</Text>
+                    <Text style={[styles.col, { flex: 1 }]}>Visibility</Text>
+                    <Text style={[styles.col, { flex: 1 }]}>Approval</Text>
                     <Text style={[styles.col, { flex: 0.5, textAlign: 'right' }]}>Action</Text>
                 </View>
 
-                {listings.map((item, index) => (
+                {listings.length === 0 ? (
+                    <View style={{ padding: 24, alignItems: 'center' }}>
+                        <Text style={{ color: Colors.text.secondary }}>No listings found.</Text>
+                    </View>
+                ) : listings.map((item: any, index: number) => (
                     <View key={item.id} style={[styles.tableRow, index !== listings.length - 1 && styles.borderBottom]}>
                         <View style={[styles.col, { flex: 3, flexDirection: 'row', gap: 16, alignItems: 'center' }]}>
                             <Image source={{ uri: item.image }} style={styles.thumb} />
@@ -57,12 +96,38 @@ export default function VendorListings() {
                                 </Text>
                             </View>
                         </View>
-                        <TouchableOpacity
-                            style={[styles.col, { flex: 0.5, alignItems: 'flex-end' }]}
-                            onPress={() => router.push(`/vendor/add-listing?id=${item.id}`)}
-                        >
-                            <Edit size={18} color={Colors.text.secondary} />
-                        </TouchableOpacity>
+                        <View style={[styles.col, { flex: 1 }]}>
+                            <View style={[
+                                styles.statusBadge, 
+                                item.approvalStatus === 'APPROVED' ? styles.activeBadge : 
+                                item.approvalStatus === 'REJECTED' ? styles.rejectedBadge : 
+                                styles.pendingBadge
+                            ]}>
+                                <Text style={[
+                                    styles.statusText, 
+                                    item.approvalStatus === 'APPROVED' ? styles.activeText : 
+                                    item.approvalStatus === 'REJECTED' ? styles.rejectedText : 
+                                    styles.pendingText
+                                ]}>
+                                    {item.approvalStatus}
+                                </Text>
+                            </View>
+                        </View>
+                        <View style={[styles.col, { flex: 0.5, flexDirection: 'row', justifyContent: 'flex-end', gap: 12, alignItems: 'center' }]}>
+                            <TouchableOpacity onPress={() => handleToggleStatus(item.id, item.status)}>
+                                {item.status === 'Active' ? (
+                                    <Pause size={18} color={Colors.text.secondary} />
+                                ) : (
+                                    <Play size={18} color={Colors.text.secondary} />
+                                )}
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => router.push(`/vendor/add-listing?id=${item.id}`)}>
+                                <Edit size={18} color={Colors.text.secondary} />
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => handleDelete(item.id)}>
+                                <Trash2 size={18} color={Colors.error} />
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 ))}
             </View>
@@ -84,7 +149,7 @@ const styles = StyleSheet.create({
     addBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: Colors.primary,
+        backgroundColor: Colors.vendor.primary,
         paddingHorizontal: 20,
         paddingVertical: 10,
         borderRadius: 12,
@@ -163,4 +228,16 @@ const styles = StyleSheet.create({
     inactiveText: {
         color: Colors.text.secondary,
     },
+    rejectedBadge: {
+        backgroundColor: '#FEE2E2',
+    },
+    rejectedText: {
+        color: '#DC2626',
+    },
+    pendingBadge: {
+        backgroundColor: '#FEF3C7',
+    },
+    pendingText: {
+        color: '#D97706',
+    }
 });

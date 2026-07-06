@@ -1,0 +1,134 @@
+app/(tabs)/dashboard.tsx(308,40): error TS2345: Argument of type '"/ai-recommendations"' is not assignable to parameter of type '"/" | "/home" | RelativePathString | ExternalPathString | "/app-preferences" | `/app-preferences?${string}` | `/app-preferences#${string}` | "/booking-success" | `/booking-success?${string}` | ... 173 more ... | { ...; }'.
+app/ad-space/[id].tsx(43,13): error TS2353: Object literal may only specify known properties, and 'name' does not exist in type 'AdSpace'.
+app/ad-space/[id].tsx(43,27): error TS2339: Property 'name' does not exist on type 'AdSpace'.
+app/ad-space/[id].tsx(67,65): error TS2339: Property 'name' does not exist on type 'AdSpace'.
+app/ad-space/[id].tsx(70,85): error TS2339: Property 'address' does not exist on type 'string'.
+app/campaign/create.tsx(124,65): error TS2339: Property 'name' does not exist on type 'CartItem'.
+app/campaign/create.tsx(166,64): error TS2339: Property 'name' does not exist on type 'CartItem'.
+app/campaign/create.tsx(167,76): error TS2339: Property 'address' does not exist on type 'string'.
+app/campaign/create.tsx(196,71): error TS2339: Property 'name' does not exist on type 'CartItem'.
+app/campaign/create.tsx(197,83): error TS2339: Property 'address' does not exist on type 'string'.
+app/campaigns/index.tsx(91,29): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextInputProps): TextInput', gave the following error.
+    Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; }' is not assignable to type 'StyleProp<TextStyle>'.
+      Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; }' is not assignable to type 'TextStyle'.
+        Types of property 'outlineStyle' are incompatible.
+          Type '"none"' is not assignable to type '"solid" | "dotted" | "dashed" | undefined'.
+  Overload 2 of 2, '(props: TextInputProps, context: any): TextInput', gave the following error.
+    Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; }' is not assignable to type 'StyleProp<TextStyle>'.
+      Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; }' is not assignable to type 'TextStyle'.
+        Types of property 'outlineStyle' are incompatible.
+          Type '"none"' is not assignable to type '"solid" | "dotted" | "dashed" | undefined'.
+app/campaigns/index.tsx(139,34): error TS2345: Argument of type '{ container: { flex: number; maxWidth: number; width: "100%"; alignSelf: "center"; }; headerTitle: { fontSize: number; fontWeight: "700"; color: string; marginBottom: number; }; topSection: { flexDirection: "row" | "column"; gap: number; marginBottom: number; }; ... 38 more ...; detailValue: { ...; }; }' is not assignable to parameter of type '{ container: { flex: number; maxWidth: number; width: "100%"; alignSelf: "center"; }; headerTitle: { fontSize: number; fontWeight: "700"; color: string; marginBottom: number; }; topSection: { flexDirection: "row" | "column"; gap: number; marginBottom: number; }; ... 38 more ...; detailValue: { ...; }; } & NamedStyle...'.
+  Property 'searchInput' is incompatible with index signature.
+    Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; }' is not assignable to type 'ViewStyle | TextStyle | ImageStyle'.
+      Types of property 'outlineStyle' are incompatible.
+        Type '"none"' is not assignable to type '"solid" | "dotted" | "dashed" | undefined'.
+app/vendor/add-listing.tsx(35,17): error TS2322: Type '"billboards"' is not assignable to type '"auto" | "buses" | "cabs" | "metro_trains" | "digital_tv" | "digital_marketing" | "led_vending" | "led_vehicle"'.
+app/vendor/add-listing.tsx(58,17): error TS2322: Type '"billboards"' is not assignable to type '"auto" | "buses" | "cabs" | "metro_trains" | "digital_tv" | "digital_marketing" | "led_vending" | "led_vehicle"'.
+app/vendor/listings.tsx(41,39): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type '{ fontSize: number; color: string; }' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type '{ fontSize: number; color: string; }' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+app/vendor/listings.tsx(53,39): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type '{ fontSize: number; color: string; }' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type '{ fontSize: number; color: string; }' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+app/vendor/listings.tsx(61,37): error TS2322: Type '{ fontSize: number; color: string; }' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+app/vendor/profile.tsx(45,41): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextInputProps): TextInput', gave the following error.
+    Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'StyleProp<TextStyle>'.
+      Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'TextStyle'.
+        Types of property 'outlineStyle' are incompatible.
+          Type '"none"' is not assignable to type '"solid" | "dotted" | "dashed" | undefined'.
+  Overload 2 of 2, '(props: TextInputProps, context: any): TextInput', gave the following error.
+    Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'StyleProp<TextStyle>'.
+      Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'TextStyle'.
+        Types of property 'outlineStyle' are incompatible.
+          Type '"none"' is not assignable to type '"solid" | "dotted" | "dashed" | undefined'.
+app/vendor/profile.tsx(57,41): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextInputProps): TextInput', gave the following error.
+    Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'StyleProp<TextStyle>'.
+      Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'TextStyle'.
+        Types of property 'outlineStyle' are incompatible.
+          Type '"none"' is not assignable to type '"solid" | "dotted" | "dashed" | undefined'.
+  Overload 2 of 2, '(props: TextInputProps, context: any): TextInput', gave the following error.
+    Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'StyleProp<TextStyle>'.
+      Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'TextStyle'.
+        Types of property 'outlineStyle' are incompatible.
+          Type '"none"' is not assignable to type '"solid" | "dotted" | "dashed" | undefined'.
+app/vendor/profile.tsx(70,37): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextInputProps): TextInput', gave the following error.
+    Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'StyleProp<TextStyle>'.
+      Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'TextStyle'.
+        Types of property 'outlineStyle' are incompatible.
+          Type '"none"' is not assignable to type '"solid" | "dotted" | "dashed" | undefined'.
+  Overload 2 of 2, '(props: TextInputProps, context: any): TextInput', gave the following error.
+    Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'StyleProp<TextStyle>'.
+      Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'TextStyle'.
+        Types of property 'outlineStyle' are incompatible.
+          Type '"none"' is not assignable to type '"solid" | "dotted" | "dashed" | undefined'.
+app/vendor/profile.tsx(89,41): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextInputProps): TextInput', gave the following error.
+    Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'StyleProp<TextStyle>'.
+      Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'TextStyle'.
+        Types of property 'outlineStyle' are incompatible.
+          Type '"none"' is not assignable to type '"solid" | "dotted" | "dashed" | undefined'.
+  Overload 2 of 2, '(props: TextInputProps, context: any): TextInput', gave the following error.
+    Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'StyleProp<TextStyle>'.
+      Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'TextStyle'.
+        Types of property 'outlineStyle' are incompatible.
+          Type '"none"' is not assignable to type '"solid" | "dotted" | "dashed" | undefined'.
+app/vendor/profile.tsx(101,41): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextInputProps): TextInput', gave the following error.
+    Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'StyleProp<TextStyle>'.
+      Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'TextStyle'.
+        Types of property 'outlineStyle' are incompatible.
+          Type '"none"' is not assignable to type '"solid" | "dotted" | "dashed" | undefined'.
+  Overload 2 of 2, '(props: TextInputProps, context: any): TextInput', gave the following error.
+    Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'StyleProp<TextStyle>'.
+      Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'TextStyle'.
+        Types of property 'outlineStyle' are incompatible.
+          Type '"none"' is not assignable to type '"solid" | "dotted" | "dashed" | undefined'.
+app/vendor/profile.tsx(114,37): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextInputProps): TextInput', gave the following error.
+    Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'StyleProp<TextStyle>'.
+      Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'TextStyle'.
+        Types of property 'outlineStyle' are incompatible.
+          Type '"none"' is not assignable to type '"solid" | "dotted" | "dashed" | undefined'.
+  Overload 2 of 2, '(props: TextInputProps, context: any): TextInput', gave the following error.
+    Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'StyleProp<TextStyle>'.
+      Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'TextStyle'.
+        Types of property 'outlineStyle' are incompatible.
+          Type '"none"' is not assignable to type '"solid" | "dotted" | "dashed" | undefined'.
+app/vendor/profile.tsx(132,41): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextInputProps): TextInput', gave the following error.
+    Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'StyleProp<TextStyle>'.
+      Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'TextStyle'.
+        Types of property 'outlineStyle' are incompatible.
+          Type '"none"' is not assignable to type '"solid" | "dotted" | "dashed" | undefined'.
+  Overload 2 of 2, '(props: TextInputProps, context: any): TextInput', gave the following error.
+    Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'StyleProp<TextStyle>'.
+      Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'TextStyle'.
+        Types of property 'outlineStyle' are incompatible.
+          Type '"none"' is not assignable to type '"solid" | "dotted" | "dashed" | undefined'.
+app/vendor/profile.tsx(143,41): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextInputProps): TextInput', gave the following error.
+    Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'StyleProp<TextStyle>'.
+      Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'TextStyle'.
+        Types of property 'outlineStyle' are incompatible.
+          Type '"none"' is not assignable to type '"solid" | "dotted" | "dashed" | undefined'.
+  Overload 2 of 2, '(props: TextInputProps, context: any): TextInput', gave the following error.
+    Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'StyleProp<TextStyle>'.
+      Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'TextStyle'.
+        Types of property 'outlineStyle' are incompatible.
+          Type '"none"' is not assignable to type '"solid" | "dotted" | "dashed" | undefined'.
+app/vendor/profile.tsx(163,34): error TS2345: Argument of type '{ container: { maxWidth: number; gap: number; }; header: { flexDirection: "row"; justifyContent: "space-between"; alignItems: "center"; }; subtitle: { fontSize: number; color: string; }; saveBtn: { flexDirection: "row"; ... 5 more ...; gap: number; }; ... 11 more ...; logoutText: { ...; }; }' is not assignable to parameter of type '{ container: { maxWidth: number; gap: number; }; header: { flexDirection: "row"; justifyContent: "space-between"; alignItems: "center"; }; subtitle: { fontSize: number; color: string; }; saveBtn: { ...; }; ... 11 more ...; logoutText: { ...; }; } & NamedStyles<...>'.
+  Property 'input' is incompatible with index signature.
+    Type '{ flex: number; fontSize: number; color: string; outlineStyle: "none"; height: "100%"; }' is not assignable to type 'ViewStyle | TextStyle | ImageStyle'.
+      Types of property 'outlineStyle' are incompatible.
+        Type '"none"' is not assignable to type '"solid" | "dotted" | "dashed" | undefined'.
+contexts/AppContext.tsx(243,25): error TS2367: This comparison appears to be unintentional because the types '"profile" | "search" | "vendor" | "login" | "bookings" | "campaign" | "services" | "home" | "app-preferences" | "booking-success" | "booking" | "company-details" | "create-campaign" | ... 22 more ... | "ad-space"' and '"(auth)"' have no overlap.
+contexts/AppContext.tsx(244,88): error TS2367: This comparison appears to be unintentional because the types '"profile" | "search" | "vendor" | "login" | "bookings" | "campaign" | "services" | "home" | "app-preferences" | "booking-success" | "booking" | "company-details" | "create-campaign" | ... 20 more ... | "ad-space"' and '"(ad-space)"' have no overlap.

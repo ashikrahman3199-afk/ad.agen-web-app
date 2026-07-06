@@ -1,20 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { trpc } from '@/lib/trpc';
-import { ArrowLeft, Upload, MapPin, DollarSign, Tag, Check, ChevronDown } from 'lucide-react-native';
+import { ArrowLeft, Upload, MapPin, DollarSign, Tag, Check, Calendar as CalendarIcon } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import WebLayout from '@/components/WebLayout';
 import { useApp } from '@/contexts/AppContext';
 import { categories } from '@/constants/adSpaces';
+import { categoryFieldsMap, CategoryField } from '@/constants/categoryFields';
+import { Calendar } from 'react-native-calendars';
 
 export default function AddListing() {
     const router = useRouter();
     const params = useLocalSearchParams();
     const isEdit = !!params.id;
-
-    // In a real app, we would fetch the listing details if isEdit is true
-    // For now, we'll just use some dummy state or empty state
 
     const [form, setForm] = useState({
         name: '',
@@ -24,22 +23,13 @@ export default function AddListing() {
         location: '',
         status: 'Active',
         description: '',
+        minDuration: '1',
     });
 
-    useEffect(() => {
-        if (isEdit) {
-            // Simulate fetching data
-            setForm({
-                name: 'VR Mall Billboard',
-                type: 'Billboard',
-                categoryId: 'billboards',
-                price: '15000',
-                location: 'Anna Nagar, Chennai',
-                status: 'Active',
-                description: 'Premium billboard location with high visibility.',
-            });
-        }
-    }, [isEdit]);
+    const [metadata, setMetadata] = useState<Record<string, any>>({});
+    const [subServices, setSubServices] = useState<string[]>([]);
+    const [blockedDates, setBlockedDates] = useState<string[]>([]);
+    const [showCalendar, setShowCalendar] = useState(false);
 
     const utils = trpc.useUtils();
     const createListing = trpc.listings.create.useMutation({
@@ -51,7 +41,7 @@ export default function AddListing() {
 
     useEffect(() => {
         if (isEdit) {
-            // Simulate fetching data
+            // Simulate fetching data for edit mode
             setForm({
                 name: 'VR Mall Billboard',
                 type: 'Billboard',
@@ -60,13 +50,27 @@ export default function AddListing() {
                 location: 'Anna Nagar, Chennai',
                 status: 'Active',
                 description: 'Premium billboard location with high visibility.',
+                minDuration: '1',
             });
+            setMetadata({
+                size: '40x20 ft',
+                lighting: 'Front-lit'
+            });
+            setSubServices(['Hoarding']);
+            setBlockedDates(['2026-07-01']);
         }
     }, [isEdit]);
 
+    // Update metadata and subservices when category changes
+    useEffect(() => {
+        if (!isEdit) {
+            setMetadata({});
+            setSubServices([]);
+        }
+    }, [form.categoryId]);
+
     const handleSave = () => {
         if (isEdit) {
-            // Update logic here if needed
             router.back();
         } else {
             createListing.mutate({
@@ -75,10 +79,65 @@ export default function AddListing() {
                 price: parseFloat(form.price) || 0,
                 location: form.location,
                 description: form.description,
-                status: 'Active',
-                // Add other fields as necessary
+                status: 'Pending',
+                minDuration: parseInt(form.minDuration) || 1,
+                metadata: metadata,
+                subServices: subServices,
+                blockedDates: blockedDates,
             });
         }
+    };
+
+    const toggleSubService = (service: string) => {
+        if (subServices.includes(service)) {
+            setSubServices(subServices.filter(s => s !== service));
+        } else {
+            setSubServices([...subServices, service]);
+        }
+    };
+
+    const toggleDate = (dateString: string) => {
+        if (blockedDates.includes(dateString)) {
+            setBlockedDates(blockedDates.filter(d => d !== dateString));
+        } else {
+            setBlockedDates([...blockedDates, dateString]);
+        }
+    };
+
+    const currentCategoryConfig = categoryFieldsMap[form.categoryId] || categoryFieldsMap['billboards'];
+
+    const markedDates = blockedDates.reduce((acc: any, date) => {
+        acc[date] = { selected: true, selectedColor: Colors.vendor.primary, disableTouchEvent: false };
+        return acc;
+    }, {});
+
+    const renderDynamicField = (field: CategoryField) => {
+        return (
+            <View style={styles.col} key={field.name}>
+                <Text style={styles.label}>{field.label}</Text>
+                {field.type === 'select' && field.options ? (
+                    <View style={styles.pickerContainer}>
+                        {field.options.map((opt) => (
+                            <TouchableOpacity
+                                key={opt}
+                                style={[styles.typeChip, metadata[field.name] === opt && styles.activeTypeChip]}
+                                onPress={() => setMetadata({ ...metadata, [field.name]: opt })}
+                            >
+                                <Text style={[styles.typeText, metadata[field.name] === opt && styles.activeTypeText]}>{opt}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                ) : (
+                    <TextInput
+                        style={styles.input}
+                        placeholder={field.placeholder}
+                        value={metadata[field.name] ? String(metadata[field.name]) : ''}
+                        onChangeText={(t) => setMetadata({ ...metadata, [field.name]: field.type === 'number' ? parseFloat(t) || '' : t })}
+                        keyboardType={field.type === 'number' ? 'numeric' : 'default'}
+                    />
+                )}
+            </View>
+        );
     };
 
     return (
@@ -106,7 +165,7 @@ export default function AddListing() {
 
                     <View style={styles.formGrid}>
                         <View style={styles.col}>
-                            <Text style={styles.label}>Listing Name</Text>
+                            <Text style={styles.label}>Listing Name *</Text>
                             <TextInput
                                 style={styles.input}
                                 placeholder="e.g. VR Mall Billboard"
@@ -131,31 +190,11 @@ export default function AddListing() {
                         </View>
 
                         <View style={styles.col}>
-                            <Text style={styles.label}>Service Details</Text>
-                            <View style={styles.inputWrapper}>
-                                <Text style={styles.inputLabel}>Slots Available</Text>
-                                <TextInput
-                                    style={[styles.input, { flex: 1, borderWidth: 0 }]}
-                                    placeholder="e.g. 10"
-                                    placeholderTextColor={Colors.text.tertiary}
-                                />
-                            </View>
-                            <View style={[styles.inputWrapper, { marginTop: 12 }]}>
-                                <Text style={styles.inputLabel}>Date</Text>
-                                <TextInput
-                                    style={[styles.input, { flex: 1, borderWidth: 0 }]}
-                                    placeholder="e.g. YYYY-MM-DD"
-                                    placeholderTextColor={Colors.text.tertiary}
-                                />
-                            </View>
-                        </View>
-
-                        <View style={styles.col}>
-                            <Text style={styles.label}>Price (per day)</Text>
+                            <Text style={styles.label}>Base Price *</Text>
                             <View style={styles.inputWrapper}>
                                 <DollarSign size={18} color={Colors.text.tertiary} />
                                 <TextInput
-                                    style={[styles.input, { borderWidth: 0 }]}
+                                    style={[styles.input, { borderWidth: 0, flex: 1, paddingHorizontal: 0 }]}
                                     placeholder="0.00"
                                     value={form.price}
                                     onChangeText={(t) => setForm({ ...form, price: t })}
@@ -165,17 +204,85 @@ export default function AddListing() {
                         </View>
 
                         <View style={styles.col}>
-                            <Text style={styles.label}>Location</Text>
+                            <Text style={styles.label}>Min Duration (Days)</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="1"
+                                value={form.minDuration}
+                                onChangeText={(t) => setForm({ ...form, minDuration: t })}
+                                keyboardType="numeric"
+                            />
+                        </View>
+
+                        <View style={styles.col}>
+                            <Text style={styles.label}>Location *</Text>
                             <View style={styles.inputWrapper}>
                                 <MapPin size={18} color={Colors.text.tertiary} />
                                 <TextInput
-                                    style={[styles.input, { borderWidth: 0 }]}
+                                    style={[styles.input, { borderWidth: 0, flex: 1, paddingHorizontal: 0 }]}
                                     placeholder="e.g. City Square"
                                     value={form.location}
                                     onChangeText={(t) => setForm({ ...form, location: t })}
                                 />
                             </View>
                         </View>
+
+                        {/* Dynamic Category Fields */}
+                        <View style={styles.fullWidthDivider} />
+                        <Text style={styles.sectionTitle}>Service Specific Details</Text>
+                        
+                        {currentCategoryConfig.fields.map(renderDynamicField)}
+
+                        {/* Sub-Services Checklist */}
+                        <View style={styles.fullWidthDivider} />
+                        <View style={styles.colFull}>
+                            <Text style={styles.sectionTitle}>Available Sub-Services</Text>
+                            <Text style={styles.uploadSubtext}>Select the specific services you offer for this listing.</Text>
+                            <View style={styles.servicesContainer}>
+                                {currentCategoryConfig.services.map((service) => (
+                                    <TouchableOpacity 
+                                        key={service} 
+                                        style={[styles.serviceCheck, subServices.includes(service) && styles.serviceCheckActive]}
+                                        onPress={() => toggleSubService(service)}
+                                    >
+                                        <View style={[styles.checkbox, subServices.includes(service) && styles.checkboxActive]}>
+                                            {subServices.includes(service) && <Check size={14} color="#FFF" />}
+                                        </View>
+                                        <Text style={styles.serviceText}>{service}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+
+                        {/* Availability Calendar */}
+                        <View style={styles.fullWidthDivider} />
+                        <View style={styles.colFull}>
+                            <Text style={styles.sectionTitle}>Block Booked Dates</Text>
+                            <Text style={styles.uploadSubtext}>Select dates on the calendar that are already booked or unavailable.</Text>
+                            
+                            <TouchableOpacity style={styles.calendarToggleBtn} onPress={() => setShowCalendar(!showCalendar)}>
+                                <CalendarIcon size={20} color={Colors.vendor.primary} />
+                                <Text style={styles.calendarToggleText}>
+                                    {showCalendar ? "Hide Calendar" : `Show Calendar (${blockedDates.length} blocked)`}
+                                </Text>
+                            </TouchableOpacity>
+
+                            {showCalendar && (
+                                <View style={styles.calendarContainer}>
+                                    <Calendar
+                                        onDayPress={(day: any) => toggleDate(day.dateString)}
+                                        markedDates={markedDates}
+                                        theme={{
+                                            todayTextColor: Colors.vendor.primary,
+                                            arrowColor: Colors.vendor.primary,
+                                            selectedDayBackgroundColor: Colors.vendor.primary,
+                                        }}
+                                    />
+                                </View>
+                            )}
+                        </View>
+
+                        <View style={styles.fullWidthDivider} />
 
                         <View style={[styles.col, { width: '100%' }]}>
                             <Text style={styles.label}>Description *</Text>
@@ -240,7 +347,7 @@ const styles = StyleSheet.create({
     saveBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: Colors.primary,
+        backgroundColor: Colors.vendor.primary,
         paddingHorizontal: 20,
         paddingVertical: 10,
         borderRadius: 12,
@@ -256,7 +363,11 @@ const styles = StyleSheet.create({
         gap: 24,
     },
     col: {
-        width: '48%', // 2 columns
+        width: '48%',
+        gap: 8,
+    },
+    colFull: {
+        width: '100%',
         gap: 8,
     },
     label: {
@@ -273,7 +384,6 @@ const styles = StyleSheet.create({
         height: 48,
         fontSize: 15,
         color: Colors.text.primary,
-        // outlineStyle: 'none', // Removed to fix TS error, re-enable if needed for web
     },
     inputWrapper: {
         flexDirection: 'row',
@@ -286,22 +396,18 @@ const styles = StyleSheet.create({
         height: 48,
         gap: 10,
     },
-    inputLabel: {
-        fontSize: 12,
-        color: Colors.text.tertiary,
-        marginBottom: -4,
-    },
     categoryScroll: {
         gap: 12,
         paddingBottom: 4,
     },
+    pickerContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 10,
+    },
     textArea: {
         height: 120,
         paddingTop: 12,
-    },
-    row: {
-        flexDirection: 'row',
-        gap: 12,
     },
     typeChip: {
         paddingHorizontal: 16,
@@ -312,8 +418,8 @@ const styles = StyleSheet.create({
         borderColor: '#E5E7EB',
     },
     activeTypeChip: {
-        backgroundColor: '#FFF0E6',
-        borderColor: Colors.primary,
+        backgroundColor: '#F0FDFA',
+        borderColor: Colors.vendor.primary,
     },
     typeText: {
         fontSize: 13,
@@ -321,7 +427,7 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     activeTypeText: {
-        color: Colors.primary,
+        color: Colors.vendor.primary,
         fontWeight: '600',
     },
     uploadBox: {
@@ -344,4 +450,78 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: Colors.text.tertiary,
     },
+    fullWidthDivider: {
+        width: '100%',
+        height: 1,
+        backgroundColor: '#E5E7EB',
+        marginVertical: 8,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: Colors.text.primary,
+        width: '100%',
+    },
+    servicesContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+        marginTop: 8,
+    },
+    serviceCheck: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F9FAFB',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 12,
+        gap: 10,
+        width: '31%',
+    },
+    serviceCheckActive: {
+        backgroundColor: '#F0FDFA',
+        borderColor: Colors.vendor.primary,
+    },
+    checkbox: {
+        width: 20,
+        height: 20,
+        borderRadius: 4,
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#FFF',
+    },
+    checkboxActive: {
+        backgroundColor: Colors.vendor.primary,
+        borderColor: Colors.vendor.primary,
+    },
+    serviceText: {
+        fontSize: 14,
+        color: Colors.text.secondary,
+        fontWeight: '500',
+    },
+    calendarToggleBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F0FDFA',
+        padding: 12,
+        borderRadius: 12,
+        alignSelf: 'flex-start',
+        gap: 8,
+    },
+    calendarToggleText: {
+        color: Colors.vendor.primary,
+        fontWeight: '600',
+    },
+    calendarContainer: {
+        marginTop: 16,
+        borderRadius: 16,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        backgroundColor: '#FFF',
+    }
 });

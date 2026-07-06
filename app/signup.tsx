@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Dimensions, Platform, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Dimensions, Platform, ActivityIndicator, ScrollView } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Phone, User, Building2, ArrowRight, CheckCircle2 } from 'lucide-react-native';
+import { Phone, User, Building2, ArrowRight, CheckCircle2, Mail, Lock, FileText, Square, CheckSquare } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { trpc } from '@/lib/trpc';
 import { useApp } from '@/contexts/AppContext';
+import LegalModal from '@/components/LegalModal';
+
+const clientLogoWhite = require('@/assets/images/logo-client-white.png');
+const vendorLogoWhite = require('@/assets/images/logo-vendor-white.png');
 
 const { width } = Dimensions.get('window');
 
@@ -12,55 +17,58 @@ export default function SignupScreen() {
     const router = useRouter();
     const { login } = useApp();
     const [role, setRole] = useState<'client' | 'vendor'>('client');
-    const [step, setStep] = useState<'details' | 'otp'>('details');
+    const [step, setStep] = useState<'details'>('details');
 
     // Form Data
     const [name, setName] = useState('');
     const [company, setCompany] = useState('');
+    const [email, setEmail] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
-    const [otp, setOtp] = useState('');
+    const [password, setPassword] = useState('');
+    const [gst, setGst] = useState('');
+    const [agreed, setAgreed] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [legalModalVisible, setLegalModalVisible] = useState(false);
+    const [legalModalType, setLegalModalType] = useState<'terms' | 'vendor-terms' | 'privacy' | null>(null);
 
-    const sendOTP = trpc.auth.sendOTP.useMutation({
+    const registerMutation = trpc.auth.register.useMutation({
         onSuccess: (data) => {
-            if (data.message.includes("Dev Code")) {
-                Alert.alert("Dev Mode", data.message);
-            } else {
-                Alert.alert("OTP Sent", "Please check your messages.");
-            }
-            setStep('otp');
-        },
-        onError: (err) => Alert.alert("Error", err.message)
-    });
-
-    const verifyOTP = trpc.auth.verifyOTP.useMutation({
-        onSuccess: (data) => {
-            if (data.success) {
-                // Here we would ideally call a 'register' endpoint, but for now verifyOTP returns a token.
-                // We'll proceed to login.
-                login(role);
-            } else {
-                Alert.alert("Invalid OTP", "Please try again.");
+            setErrorMessage('');
+            if (data.success && data.token) {
+                login(role, data.token, data.user);
             }
         },
-        onError: (err) => Alert.alert("Error", err.message)
+        onError: (err) => {
+            console.error("Signup Error:", err);
+            setErrorMessage(err.message || "Failed to connect to the server.");
+        }
     });
 
     const handleSignup = () => {
-        if (!name || !company || phoneNumber.length < 10) {
-            Alert.alert("Missing Fields", "Please fill in all details.");
+        setErrorMessage('');
+        if (!name || !email || !password || phoneNumber.length < 10) {
+            setErrorMessage("Please fill in all required details.");
             return;
         }
-        const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
-        sendOTP.mutate({ phoneNumber: formattedPhone, role });
-    };
-
-    const handleVerify = () => {
-        if (otp.length < 4) {
-            Alert.alert("Invalid OTP", "Enter the code you received.");
+        if (role === 'vendor' && !agreed) {
+            setErrorMessage("You must agree to the Terms & Conditions and Privacy Policy.");
             return;
         }
+        if (role === 'vendor' && !company) {
+             setErrorMessage("Please provide your Business / Company name.");
+             return;
+        }
+        
         const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
-        verifyOTP.mutate({ phoneNumber: formattedPhone, code: otp, role });
+        registerMutation.mutate({ 
+            name, 
+            email, 
+            password, 
+            phoneNumber: formattedPhone, 
+            company, 
+            gst, 
+            role 
+        });
     };
 
     return (
@@ -69,7 +77,7 @@ export default function SignupScreen() {
             {width > 900 && (
                 <View style={[styles.leftPanel, { backgroundColor: role === 'client' ? Colors.primary : Colors.vendor.primary }]}>
                     <View style={styles.brandContainer}>
-                        <Text style={styles.brandLogo}>ad<Text style={[styles.brandHighlight, { color: role === 'client' ? Colors.accent : Colors.vendor.accent }]}>.</Text>agen</Text>
+                        <Image source={role === 'client' ? clientLogoWhite : vendorLogoWhite} style={styles.brandLogoImage} contentFit="contain" />
                         <Text style={styles.brandTagline}>Join the Network</Text>
                     </View>
 
@@ -104,11 +112,16 @@ export default function SignupScreen() {
 
             {/* Right Side - Signup Form */}
             <View style={styles.rightPanel}>
-                <View style={styles.formContainer}>
+                <ScrollView 
+                    style={styles.scrollView} 
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
+                    <View style={styles.formContainer}>
                     <View style={styles.header}>
-                        <Text style={styles.title}>{step === 'details' ? 'Create Account' : 'Verify Phone'}</Text>
+                        <Text style={styles.title}>Create Account</Text>
                         <Text style={styles.subtitle}>
-                            {step === 'details' ? 'Start your journey with ad.agen today.' : `Enter the code sent to ${phoneNumber}`}
+                            {role === 'vendor' ? 'Sign up to start receiving ad requests' : 'Start your journey with ad.agen today.'}
                         </Text>
                     </View>
 
@@ -131,94 +144,134 @@ export default function SignupScreen() {
                     )}
 
                     {/* Inputs */}
-                    {step === 'details' ? (
+                    {role === 'client' ? (
                         <>
                             <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Full Name</Text>
                                 <View style={styles.inputWrapper}>
-                                    <User size={20} color={Colors.text.tertiary} style={styles.inputIcon} />
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder="John Doe"
-                                        placeholderTextColor={Colors.text.tertiary}
-                                        value={name}
-                                        onChangeText={setName}
-                                    />
+                                    <User size={20} color={Colors.primary} style={styles.inputIcon} />
+                                    <TextInput style={styles.input} placeholder="Your Full Name" placeholderTextColor={Colors.text.tertiary} value={name} onChangeText={setName} />
                                 </View>
                             </View>
-
                             <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Company Name</Text>
                                 <View style={styles.inputWrapper}>
-                                    <Building2 size={20} color={Colors.text.tertiary} style={styles.inputIcon} />
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder="Acme Corp"
-                                        placeholderTextColor={Colors.text.tertiary}
-                                        value={company}
-                                        onChangeText={setCompany}
-                                    />
+                                    <Mail size={20} color={Colors.primary} style={styles.inputIcon} />
+                                    <TextInput style={styles.input} placeholder="Email Address" placeholderTextColor={Colors.text.tertiary} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
                                 </View>
                             </View>
-
                             <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Mobile Number</Text>
                                 <View style={styles.inputWrapper}>
-                                    <Phone size={20} color={Colors.text.tertiary} style={styles.inputIcon} />
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder="9876543210"
-                                        placeholderTextColor={Colors.text.tertiary}
-                                        value={phoneNumber}
-                                        onChangeText={setPhoneNumber}
-                                        keyboardType="phone-pad"
-                                        maxLength={10}
-                                    />
+                                    <Phone size={20} color={Colors.primary} style={styles.inputIcon} />
+                                    <TextInput style={styles.input} placeholder="Mobile Number" placeholderTextColor={Colors.text.tertiary} value={phoneNumber} onChangeText={setPhoneNumber} keyboardType="phone-pad" maxLength={10} />
+                                </View>
+                            </View>
+                            <View style={styles.inputGroup}>
+                                <View style={styles.inputWrapper}>
+                                    <Lock size={20} color={Colors.primary} style={styles.inputIcon} />
+                                    <TextInput style={styles.input} placeholder="Password" placeholderTextColor={Colors.text.tertiary} value={password} onChangeText={setPassword} secureTextEntry />
+                                </View>
+                            </View>
+                            <View style={styles.inputGroup}>
+                                <View style={styles.inputWrapper}>
+                                    <Building2 size={20} color={Colors.primary} style={styles.inputIcon} />
+                                    <TextInput style={styles.input} placeholder="Company OR Brand Name (Optional)" placeholderTextColor={Colors.text.tertiary} value={company} onChangeText={setCompany} />
+                                </View>
+                            </View>
+                            <View style={styles.inputGroup}>
+                                <View style={styles.inputWrapper}>
+                                    <FileText size={20} color={Colors.primary} style={styles.inputIcon} />
+                                    <TextInput style={styles.input} placeholder="GST Number (Optional)" placeholderTextColor={Colors.text.tertiary} value={gst} onChangeText={setGst} autoCapitalize="characters" />
                                 </View>
                             </View>
                         </>
                     ) : (
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>OTP Code</Text>
-                            <View style={styles.inputWrapper}>
-                                <TextInput
-                                    style={[styles.input, { textAlign: 'center', letterSpacing: 8, fontSize: 24, fontWeight: '700' }]}
-                                    placeholder="123456"
-                                    placeholderTextColor={Colors.text.tertiary}
-                                    value={otp}
-                                    onChangeText={setOtp}
-                                    keyboardType="number-pad"
-                                    maxLength={6}
-                                    autoFocus
-                                />
+                        <>
+                            <View style={styles.inputGroup}>
+                                <View style={styles.inputWrapper}>
+                                    <User size={20} color={Colors.vendor.primary} style={styles.inputIcon} />
+                                    <TextInput style={styles.input} placeholder="Your Full Name" placeholderTextColor={Colors.text.tertiary} value={name} onChangeText={setName} />
+                                </View>
                             </View>
-                        </View>
+                            <View style={styles.inputGroup}>
+                                <View style={styles.inputWrapper}>
+                                    <Building2 size={20} color={Colors.vendor.primary} style={styles.inputIcon} />
+                                    <TextInput style={styles.input} placeholder="Business / Company" placeholderTextColor={Colors.text.tertiary} value={company} onChangeText={setCompany} />
+                                </View>
+                            </View>
+                            <View style={styles.inputGroup}>
+                                <View style={styles.inputWrapper}>
+                                    <Mail size={20} color={Colors.vendor.primary} style={styles.inputIcon} />
+                                    <TextInput style={styles.input} placeholder="Email Address" placeholderTextColor={Colors.text.tertiary} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+                                </View>
+                            </View>
+                            <View style={styles.inputGroup}>
+                                <View style={styles.inputWrapper}>
+                                    <Phone size={20} color={Colors.vendor.primary} style={styles.inputIcon} />
+                                    <TextInput style={styles.input} placeholder="Mobile Number" placeholderTextColor={Colors.text.tertiary} value={phoneNumber} onChangeText={setPhoneNumber} keyboardType="phone-pad" maxLength={10} />
+                                </View>
+                            </View>
+                            <View style={styles.inputGroup}>
+                                <View style={styles.inputWrapper}>
+                                    <Lock size={20} color={Colors.vendor.primary} style={styles.inputIcon} />
+                                    <TextInput style={styles.input} placeholder="Password" placeholderTextColor={Colors.text.tertiary} value={password} onChangeText={setPassword} secureTextEntry />
+                                </View>
+                            </View>
+                            <View style={styles.inputGroup}>
+                                <View style={styles.inputWrapper}>
+                                    <FileText size={20} color={Colors.vendor.primary} style={styles.inputIcon} />
+                                    <TextInput style={styles.input} placeholder="Valid GST Number (Optional)" placeholderTextColor={Colors.text.tertiary} value={gst} onChangeText={setGst} autoCapitalize="characters" />
+                                </View>
+                            </View>
+                            <TouchableOpacity style={styles.checkboxContainer} onPress={() => setAgreed(!agreed)}>
+                                {agreed ? <CheckSquare size={20} color={Colors.vendor.primary} /> : <Square size={20} color={Colors.text.tertiary} />}
+                                <Text style={styles.checkboxText}>I agree to the Terms & Conditions and Privacy Policy</Text>
+                            </TouchableOpacity>
+                        </>
                     )}
+
+                    {errorMessage ? (
+                        <View style={styles.errorContainer}>
+                            <Text style={styles.errorText}>{errorMessage}</Text>
+                        </View>
+                    ) : null}
 
                     <TouchableOpacity
                         style={[
                             styles.submitButton,
                             { backgroundColor: role === 'client' ? Colors.primary : Colors.vendor.primary },
-                            (sendOTP.isPending || verifyOTP.isPending) && { opacity: 0.7 }
+                            registerMutation.isPending && { opacity: 0.7 }
                         ]}
-                        onPress={step === 'details' ? handleSignup : handleVerify}
-                        disabled={sendOTP.isPending || verifyOTP.isPending}
+                        onPress={handleSignup}
+                        disabled={registerMutation.isPending}
                     >
-                        {sendOTP.isPending || verifyOTP.isPending ? (
+                        {registerMutation.isPending ? (
                             <ActivityIndicator color="#FFFFFF" />
                         ) : (
                             <>
-                                <Text style={styles.submitButtonText}>{step === 'details' ? 'Get OTP' : 'Verify & Create'}</Text>
-                                <ArrowRight size={20} color="#FFFFFF" />
+                                <Text style={styles.submitButtonText}>Sign Up</Text>
                             </>
                         )}
                     </TouchableOpacity>
 
-                    {step === 'otp' && (
-                        <TouchableOpacity onPress={() => setStep('details')} style={styles.backLink}>
-                            <Text style={styles.footerLink}>Change Number</Text>
-                        </TouchableOpacity>
-                    )}
+
+
+                    <View style={styles.termsContainer}>
+                        <Text style={styles.termsText}>
+                            By continuing, you agree to our{' '}
+                            <Text 
+                                style={[styles.termsLink, { color: role === 'client' ? Colors.primary : Colors.vendor.primary }]}
+                                onPress={() => { setLegalModalType(role === 'vendor' ? 'vendor-terms' : 'terms'); setLegalModalVisible(true); }}
+                            >
+                                {role === 'vendor' ? 'Vendor Terms & Conditions' : 'Terms & Conditions'}
+                            </Text>
+                            {' '}and{' '}
+                            <Text 
+                                style={[styles.termsLink, { color: role === 'client' ? Colors.primary : Colors.vendor.primary }]}
+                                onPress={() => { setLegalModalType('privacy'); setLegalModalVisible(true); }}
+                            >
+                                Privacy Policy
+                            </Text>.
+                        </Text>
+                    </View>
 
                     <View style={styles.footer}>
                         <Text style={styles.footerText}>Already have an account? </Text>
@@ -227,7 +280,9 @@ export default function SignupScreen() {
                         </TouchableOpacity>
                     </View>
                 </View>
+                </ScrollView>
             </View>
+            <LegalModal visible={legalModalVisible} type={legalModalType} role={role} onClose={() => setLegalModalVisible(false)} />
         </View>
     );
 }
@@ -258,14 +313,10 @@ const styles = StyleSheet.create({
     brandContainer: {
         zIndex: 10,
     },
-    brandLogo: {
-        fontSize: 48,
-        fontWeight: '800',
-        color: '#FFFFFF',
-        marginBottom: 12,
-    },
-    brandHighlight: {
-        color: Colors.accent,
+    brandLogoImage: {
+        width: 180,
+        height: 60,
+        marginBottom: 8,
     },
     brandTagline: {
         fontSize: 20,
@@ -293,7 +344,13 @@ const styles = StyleSheet.create({
     },
     rightPanel: {
         flex: 1,
-        maxWidth: 600,
+        backgroundColor: '#FFFFFF',
+    },
+    scrollView: {
+        flex: 1,
+    },
+    scrollContent: {
+        flexGrow: 1,
         justifyContent: 'center',
         alignItems: 'center',
         padding: 40,
@@ -341,13 +398,7 @@ const styles = StyleSheet.create({
         color: Colors.text.primary,
     },
     inputGroup: {
-        marginBottom: 16,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: Colors.text.primary,
-        marginBottom: 8,
+        marginBottom: 12,
     },
     inputWrapper: {
         flexDirection: 'row',
@@ -401,5 +452,45 @@ const styles = StyleSheet.create({
     backLink: {
         alignSelf: 'center',
         marginBottom: 24,
+    },
+    termsContainer: {
+        paddingHorizontal: 20,
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    termsText: {
+        fontSize: 12,
+        color: Colors.text.secondary,
+        textAlign: 'center',
+        lineHeight: 18,
+    },
+    termsLink: {
+        fontWeight: '600',
+    },
+    checkboxContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+        paddingHorizontal: 8,
+        gap: 8,
+    },
+    checkboxText: {
+        fontSize: 12,
+        color: Colors.text.secondary,
+        flex: 1,
+    },
+    errorContainer: {
+        backgroundColor: '#FEE2E2',
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: '#FCA5A5',
+    },
+    errorText: {
+        color: '#EF4444',
+        fontSize: 14,
+        fontWeight: '500',
+        textAlign: 'center',
     }
 });

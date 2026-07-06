@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { 
-    Bus, Car, Navigation, Train, Tv, Smartphone, Box, Truck, Grid
+    Bus, Car, Navigation, Train, Tv, Smartphone, Box, Truck, Grid,
+    MonitorPlay, Newspaper, Monitor, Radio, Clapperboard, Users
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import WebLayout from '@/components/WebLayout';
@@ -17,6 +18,13 @@ const IconMap: Record<string, React.ElementType> = {
     smartphone: Smartphone,
     box: Box,
     truck: Truck,
+    billboard: MonitorPlay,
+    led_billboard: MonitorPlay,
+    newspaper: Newspaper,
+    monitor: Monitor,
+    radio: Radio,
+    film: Clapperboard,
+    users: Users,
 };
 
 export default function ServicesScreen() {

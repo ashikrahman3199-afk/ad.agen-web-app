@@ -11,8 +11,8 @@ const getBaseUrl = () => {
     return process.env.EXPO_PUBLIC_RORK_API_BASE_URL;
   }
 
-  // Fallback for development to prevent crash
-  return 'http://localhost:3000';
+  // Fallback for production to prevent crash
+  return 'https://ad-agen-web-app.onrender.com';
 };
 
 export const trpcClient = trpc.createClient({

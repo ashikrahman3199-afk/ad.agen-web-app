@@ -38,42 +38,7 @@ export default function BookingsScreen() {
   const { bookings } = useApp();
   const [selectedFilter, setSelectedFilter] = useState<BookingStatus | 'all'>('all');
 
-  const allBookings = [
-    ...bookings,
-    {
-      id: 'ORD-123456',
-      campaignName: 'Summer Sale 2024',
-      orderDate: '2024-01-15',
-      startDate: '2024-02-01',
-      endDate: '2024-03-01',
-      status: 'active' as BookingStatus,
-      amount: 250000,
-      services: ['Billboards', 'Digital', 'Social Media'],
-      items: [],
-    },
-    {
-      id: 'ORD-123455',
-      campaignName: 'Product Launch',
-      orderDate: '2024-01-10',
-      startDate: '2024-01-20',
-      endDate: '2024-02-20',
-      status: 'completed' as BookingStatus,
-      amount: 180000,
-      services: ['Print Media', 'Radio'],
-      items: [],
-    },
-    {
-      id: 'ORD-123454',
-      campaignName: 'Brand Awareness',
-      orderDate: '2024-01-05',
-      startDate: '2024-01-25',
-      endDate: '2024-02-25',
-      status: 'pending' as BookingStatus,
-      amount: 320000,
-      services: ['Cinema', 'Influencers', 'Digital'],
-      items: [],
-    },
-  ];
+  const allBookings = [...bookings];
 
   const filters: { id: BookingStatus | 'all'; label: string }[] = [
     { id: 'all', label: 'All' },

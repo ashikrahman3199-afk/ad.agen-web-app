@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { trpc } from '@/lib/trpc';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert, Modal, TextInput } from 'react-native';
 import { TrendingUp, Users, DollarSign, Calendar, ArrowUpRight, MoreHorizontal, Check, X, Plus } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import WebLayout from '@/components/WebLayout';
@@ -13,13 +13,37 @@ export default function VendorDashboard() {
     const router = useRouter();
 
     const [expandedRequestId, setExpandedRequestId] = useState<string | null>(null);
+    const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+    const [withdrawAmount, setWithdrawAmount] = useState('');
 
-    // Mock Data
+    const { data: bookings } = trpc.bookings.list.useQuery();
+    const { data: listings } = trpc.listings.list.useQuery();
+
+    interface Booking {
+        id: string;
+        clientId?: string;
+        startDate: string;
+        endDate: string;
+        totalAmount: number;
+        status: string;
+        createdAt: string;
+    }
+
+    const totalRevenue = bookings ? bookings.reduce((sum, b: any) => sum + (b.totalAmount || 0), 0) : 0;
+    const activeListingsCount = listings ? listings.length : 0;
+    const pendingCount = bookings ? bookings.filter((b: any) => b.status === 'Pending').length : 0;
+
+    const availableBalance = totalRevenue;
+    const tdsDeduction = availableBalance * 0.01; // 1% TDS
+    const platformFeeDeduction = availableBalance * 0.05; // 5% Platform Fees
+    const totalDeductions = tdsDeduction + platformFeeDeduction;
+    const netBalance = availableBalance - totalDeductions;
+
     const stats = [
-        { label: 'Total Revenue', value: '₹12.5L', change: '+15.3%', icon: DollarSign, color: Colors.success },
-        { label: 'Active Listings', value: '24', change: '+2', icon: Calendar, color: Colors.primary },
-        { label: 'Pending Requests', value: '8', change: '-1', icon: Users, color: Colors.warning },
-        { label: 'Avg. Occupancy', value: '85%', change: '+5%', icon: TrendingUp, color: Colors.info },
+        { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString()}`, change: '0%', icon: DollarSign, color: Colors.success },
+        { label: 'Active Listings', value: `${activeListingsCount}`, change: '0', icon: Calendar, color: Colors.vendor.primary },
+        { label: 'Pending Requests', value: `${pendingCount}`, change: '0', icon: Users, color: Colors.warning },
+        { label: 'Avg. Occupancy', value: '0%', change: '0%', icon: TrendingUp, color: Colors.info },
     ];
 
     const pickImage = async (requestId: string) => {
@@ -39,17 +63,16 @@ export default function VendorDashboard() {
         setExpandedRequestId(prev => prev === id ? null : id);
     };
 
-    const { data: bookings } = trpc.bookings.list.useQuery();
-
-    interface Booking {
-        id: string;
-        clientId?: string;
-        startDate: string;
-        endDate: string;
-        totalAmount: number;
-        status: string;
-        createdAt: string;
-    }
+    const handleWithdraw = () => {
+        if (!withdrawAmount || isNaN(Number(withdrawAmount))) return;
+        if (Number(withdrawAmount) > netBalance) {
+            Alert.alert('Error', 'Amount exceeds available balance.');
+            return;
+        }
+        Alert.alert('Success', `Withdrawal request for ₹${Number(withdrawAmount).toLocaleString()} submitted!`);
+        setShowWithdrawModal(false);
+        setWithdrawAmount('');
+    };
 
     const requests = (bookings as Booking[] | undefined)?.map((booking) => ({
         id: booking.id,
@@ -131,7 +154,7 @@ export default function VendorDashboard() {
                                             e.stopPropagation();
                                             pickImage(req.id);
                                         }}>
-                                            <Plus size={16} color={Colors.primary} />
+                                            <Plus size={16} color={Colors.vendor.primary} />
                                         </TouchableOpacity>
                                     </View>
                                 </TouchableOpacity>
@@ -167,7 +190,7 @@ export default function VendorDashboard() {
                                 <Text style={styles.actionDesc}>List a new ad space</Text>
                             </View>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.quickAction}>
+                        <TouchableOpacity style={styles.quickAction} onPress={() => setShowWithdrawModal(true)}>
                             <View style={[styles.actionIcon, { backgroundColor: '#FCE7F3' }]}>
                                 <DollarSign size={20} color="#DB2777" />
                             </View>
@@ -179,6 +202,66 @@ export default function VendorDashboard() {
                     </View>
                 </View>
             </View>
+
+            {/* Withdraw Modal */}
+            <Modal
+                transparent
+                visible={showWithdrawModal}
+                animationType="fade"
+                onRequestClose={() => setShowWithdrawModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Withdraw Earnings</Text>
+                            <TouchableOpacity onPress={() => setShowWithdrawModal(false)}>
+                                <X size={24} color={Colors.text.secondary} />
+                            </TouchableOpacity>
+                        </View>
+                        
+                        <View style={styles.balanceContainer}>
+                            <View style={styles.balanceRow}>
+                                <Text style={styles.balanceLabel}>Total Balance</Text>
+                                <Text style={styles.balanceValue}>₹{availableBalance.toLocaleString()}</Text>
+                            </View>
+                            <View style={styles.balanceRow}>
+                                <Text style={styles.balanceLabel}>TDS (1%)</Text>
+                                <Text style={styles.balanceDeduction}>-₹{tdsDeduction.toLocaleString()}</Text>
+                            </View>
+                            <View style={styles.balanceRow}>
+                                <Text style={styles.balanceLabel}>Platform Fees (5%)</Text>
+                                <Text style={styles.balanceDeduction}>-₹{platformFeeDeduction.toLocaleString()}</Text>
+                            </View>
+                            <View style={styles.divider} />
+                            <View style={styles.balanceRow}>
+                                <Text style={styles.netBalanceLabel}>Net Available Balance</Text>
+                                <Text style={styles.netBalanceValue}>₹{netBalance.toLocaleString()}</Text>
+                            </View>
+                        </View>
+
+                        <Text style={styles.inputLabel}>Enter Amount to Withdraw</Text>
+                        <TextInput
+                            style={styles.amountInput}
+                            placeholder="₹ 0.00"
+                            keyboardType="numeric"
+                            value={withdrawAmount}
+                            onChangeText={setWithdrawAmount}
+                            placeholderTextColor={Colors.text.tertiary}
+                        />
+
+                        <TouchableOpacity 
+                            style={[
+                                styles.withdrawSubmitBtn, 
+                                (!withdrawAmount || Number(withdrawAmount) <= 0 || Number(withdrawAmount) > netBalance) && styles.withdrawSubmitBtnDisabled
+                            ]}
+                            onPress={handleWithdraw}
+                            disabled={!withdrawAmount || Number(withdrawAmount) <= 0 || Number(withdrawAmount) > netBalance}
+                        >
+                            <Text style={styles.withdrawSubmitText}>Withdraw Now</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </WebLayout>
     );
 }
@@ -266,7 +349,7 @@ const styles = StyleSheet.create({
     viewAllText: {
         fontSize: 14,
         fontWeight: '600',
-        color: Colors.primary,
+        color: Colors.vendor.primary,
     },
     table: {
         width: '100%',
@@ -360,5 +443,102 @@ const styles = StyleSheet.create({
         flex: 1,
         color: Colors.text.primary,
         fontSize: 14,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    modalContent: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 24,
+        padding: 24,
+        width: '100%',
+        maxWidth: 400,
+        ...Colors.shadow.large,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: Colors.text.primary,
+    },
+    balanceContainer: {
+        backgroundColor: '#F9FAFB',
+        padding: 16,
+        borderRadius: 12,
+        marginBottom: 24,
+    },
+    balanceRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
+    balanceLabel: {
+        fontSize: 14,
+        color: Colors.text.secondary,
+    },
+    balanceValue: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: Colors.text.primary,
+    },
+    balanceDeduction: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#EF4444',
+    },
+    divider: {
+        height: 1,
+        backgroundColor: '#E5E7EB',
+        marginVertical: 8,
+    },
+    netBalanceLabel: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: Colors.text.primary,
+    },
+    netBalanceValue: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: Colors.vendor.primary,
+    },
+    inputLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: Colors.text.primary,
+        marginBottom: 8,
+    },
+    amountInput: {
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 12,
+        padding: 16,
+        fontSize: 20,
+        fontWeight: '600',
+        color: Colors.text.primary,
+        marginBottom: 24,
+        backgroundColor: '#FFFFFF',
+    },
+    withdrawSubmitBtn: {
+        backgroundColor: Colors.vendor.primary,
+        paddingVertical: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    withdrawSubmitBtnDisabled: {
+        opacity: 0.5,
+    },
+    withdrawSubmitText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '700',
     },
 });

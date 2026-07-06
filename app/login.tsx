@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Dimensions, Platform, Alert, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Phone, ArrowRight, CheckCircle2, Mail, Lock } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 import { trpc } from '@/lib/trpc';
+import LegalModal from '@/components/LegalModal';
+
+const clientLogoWhite = require('@/assets/images/logo-client-white.png');
+const vendorLogoWhite = require('@/assets/images/logo-vendor-white.png');
 
 const { width } = Dimensions.get('window');
 
@@ -12,17 +17,18 @@ export default function LoginScreen() {
   const router = useRouter();
   const { login } = useApp();
   const [role, setRole] = useState<'client' | 'vendor'>('client');
-  const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [legalModalVisible, setLegalModalVisible] = useState(false);
+  const [legalModalType, setLegalModalType] = useState<'terms' | 'vendor-terms' | 'privacy' | null>(null);
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
       setErrorMessage('');
       if (data.success && data.token) {
-        login(role, data.token);
+        login(role, data.token, data.user);
       }
     },
     onError: (err) => {
@@ -31,18 +37,7 @@ export default function LoginScreen() {
     }
   });
 
-  const registerMutation = trpc.auth.register.useMutation({
-    onSuccess: (data) => {
-      setErrorMessage('');
-      if (data.success && data.token) {
-        login(role, data.token);
-      }
-    },
-    onError: (err) => {
-      console.error("Registration Error:", err);
-      setErrorMessage(err.message || "Failed to connect to the server.");
-    }
-  });
+
 
   const handleSubmit = () => {
     setErrorMessage('');
@@ -51,16 +46,7 @@ export default function LoginScreen() {
       return;
     }
     
-    if (mode === 'register') {
-      if (!phoneNumber || phoneNumber.length < 10) {
-        setErrorMessage("Please enter a valid phone number.");
-        return;
-      }
-      const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
-      registerMutation.mutate({ email, password, phoneNumber: formattedPhone, role });
-    } else {
-      loginMutation.mutate({ email, password, role });
-    }
+    loginMutation.mutate({ email, password, role });
   };
 
   return (
@@ -69,7 +55,7 @@ export default function LoginScreen() {
       {width > 900 && (
         <View style={[styles.leftPanel, { backgroundColor: role === 'client' ? Colors.primary : Colors.vendor.primary }]}>
           <View style={styles.brandContainer}>
-            <Text style={styles.brandLogo}>ad<Text style={[styles.brandHighlight, { color: role === 'client' ? Colors.accent : Colors.vendor.accent }]}>.</Text>agen</Text>
+            <Image source={role === 'client' ? clientLogoWhite : vendorLogoWhite} style={styles.brandLogoImage} contentFit="contain" />
             <Text style={styles.brandTagline}>The Future of Ad Booking</Text>
           </View>
 
@@ -107,28 +93,23 @@ export default function LoginScreen() {
       <View style={styles.rightPanel}>
         <View style={styles.formContainer}>
           <View style={styles.header}>
-            <Text style={styles.title}>{mode === 'login' ? 'Welcome Back' : 'Create Account'}</Text>
-            <Text style={styles.subtitle}>
-              {mode === 'login'
-                ? 'Enter your credentials to sign in.'
-                : 'Sign up to get started.'
-              }
-            </Text>
+            <Text style={styles.title}>Welcome Back</Text>
+            <Text style={styles.subtitle}>Enter your credentials to sign in.</Text>
           </View>
 
           {/* Role Selector */}
           <View style={styles.roleSelector}>
-            <TouchableOpacity
+            <TouchableOpacity 
               style={[styles.roleButton, role === 'client' && styles.roleButtonActive]}
               onPress={() => setRole('client')}
             >
-              <Text style={[styles.roleText, role === 'client' && styles.roleTextActive]}>Advertiser</Text>
+              <Text style={[styles.roleText, role === 'client' && styles.roleTextActive]}>User</Text>
             </TouchableOpacity>
-            <TouchableOpacity
+            <TouchableOpacity 
               style={[styles.roleButton, role === 'vendor' && styles.roleButtonActive]}
               onPress={() => setRole('vendor')}
             >
-              <Text style={[styles.roleText, role === 'vendor' && styles.roleTextActive]}>Media Owner</Text>
+              <Text style={[styles.roleText, role === 'vendor' && styles.roleTextActive]}>Vendor</Text>
             </TouchableOpacity>
           </View>
 
@@ -162,25 +143,12 @@ export default function LoginScreen() {
                 secureTextEntry
               />
             </View>
+            <TouchableOpacity onPress={() => router.push(`/forgot-password?role=${role}`)} style={styles.forgotPasswordContainer}>
+              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+            </TouchableOpacity>
           </View>
 
-          {mode === 'register' && (
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Mobile Number</Text>
-              <View style={styles.inputWrapper}>
-                <Phone size={20} color={Colors.text.tertiary} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="9876543210"
-                  placeholderTextColor={Colors.text.tertiary}
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                  keyboardType="phone-pad"
-                  maxLength={10}
-                />
-              </View>
-            </View>
-          )}
+
 
           {errorMessage ? (
             <View style={styles.errorContainer}>
@@ -192,26 +160,26 @@ export default function LoginScreen() {
             style={[
               styles.submitButton,
               { backgroundColor: role === 'client' ? Colors.primary : Colors.vendor.primary },
-              (loginMutation.isPending || registerMutation.isPending) && { opacity: 0.7 }
+              loginMutation.isPending && { opacity: 0.7 }
             ]}
             onPress={handleSubmit}
-            disabled={loginMutation.isPending || registerMutation.isPending}
+            disabled={loginMutation.isPending}
           >
-            {loginMutation.isPending || registerMutation.isPending ? (
+            {loginMutation.isPending ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <>
-                <Text style={styles.submitButtonText}>{mode === 'login' ? 'Sign In' : 'Sign Up'}</Text>
+                <Text style={styles.submitButtonText}>Sign In</Text>
                 <ArrowRight size={20} color="#FFFFFF" />
               </>
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => setMode(mode === 'login' ? 'register' : 'login')} style={styles.backLink}>
+          <TouchableOpacity onPress={() => router.push('/signup')} style={styles.backLink}>
             <Text style={styles.termsText}>
-              {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
+              Don't have an account? 
               <Text style={[styles.footerLink, { color: role === 'client' ? Colors.primary : Colors.vendor.primary }]}>
-                {mode === 'login' ? "Sign Up" : "Sign In"}
+                 Sign Up
               </Text>
             </Text>
           </TouchableOpacity>
@@ -219,13 +187,24 @@ export default function LoginScreen() {
           <View style={styles.termsContainer}>
             <Text style={styles.termsText}>
               By continuing, you agree to our{' '}
-              <Text style={[styles.termsLink, { color: role === 'client' ? Colors.primary : Colors.vendor.primary }]}>Terms & Conditions</Text>
+              <Text 
+                style={[styles.termsLink, { color: role === 'client' ? Colors.primary : Colors.vendor.primary }]}
+                onPress={() => { setLegalModalType(role === 'vendor' ? 'vendor-terms' : 'terms'); setLegalModalVisible(true); }}
+              >
+                {role === 'vendor' ? 'Vendor Terms & Conditions' : 'Terms & Conditions'}
+              </Text>
               {' '}and{' '}
-              <Text style={[styles.termsLink, { color: role === 'client' ? Colors.primary : Colors.vendor.primary }]}>Privacy Policy</Text>.
+              <Text 
+                style={[styles.termsLink, { color: role === 'client' ? Colors.primary : Colors.vendor.primary }]}
+                onPress={() => { setLegalModalType('privacy'); setLegalModalVisible(true); }}
+              >
+                Privacy Policy
+              </Text>.
             </Text>
           </View>
         </View>
       </View>
+      <LegalModal visible={legalModalVisible} type={legalModalType} role={role} onClose={() => setLegalModalVisible(false)} />
     </View>
   );
 }
@@ -256,14 +235,10 @@ const styles = StyleSheet.create({
   brandContainer: {
     zIndex: 10,
   },
-  brandLogo: {
-    fontSize: 48,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 12,
-  },
-  brandHighlight: {
-    color: Colors.accent,
+  brandLogoImage: {
+    width: 180,
+    height: 60,
+    marginBottom: 8,
   },
   brandTagline: {
     fontSize: 20,
@@ -416,5 +391,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
+  },
+  forgotPasswordContainer: {
+    alignSelf: 'flex-end',
+    marginTop: 8,
+  },
+  forgotPasswordText: {
+    color: Colors.text.secondary,
+    fontSize: 14,
+    fontWeight: '500',
   }
 });

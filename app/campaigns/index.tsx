@@ -1,34 +1,37 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Dimensions, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Search, Megaphone, DollarSign, Activity, XCircle, Calendar, Star } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import WebLayout from '@/components/WebLayout';
+import { trpc } from '@/lib/trpc';
+import { useApp } from '@/contexts/AppContext';
 
 const { width } = Dimensions.get('window');
 
 export default function MyCampaignsScreen() {
     const router = useRouter();
+    const { user } = useApp();
     const [searchQuery, setSearchQuery] = useState('');
 
+    const { data: campaigns = [], isLoading } = trpc.campaigns.list.useQuery(
+        { clientId: user?.id || "mock-client-id" }
+    );
+
+    const totalSpend = campaigns.reduce((sum, camp) => sum + (camp.spend || camp.budget || 0), 0);
+    const activeCount = campaigns.filter(c => c.status === 'active').length;
+    const endedCount = campaigns.filter(c => c.status === 'completed').length;
+
     const stats = [
-        { label: 'Total Campaign Spend (All-time)', value: '₹151.4K', icon: DollarSign, color: '#EF4444' },
-        { label: 'Total no of Campaign', value: '1', icon: Megaphone, color: '#3B82F6' },
-        { label: 'Campaigns Live', value: '0', icon: Activity, color: '#10B981' },
-        { label: 'Campaigns Ended', value: '0', icon: XCircle, color: '#6B7280' },
+        { label: 'Total Campaign Spend (All-time)', value: `₹${(totalSpend / 1000).toFixed(1)}K`, icon: DollarSign, color: '#EF4444' },
+        { label: 'Total no of Campaign', value: campaigns.length.toString(), icon: Megaphone, color: '#3B82F6' },
+        { label: 'Campaigns Live', value: activeCount.toString(), icon: Activity, color: '#10B981' },
+        { label: 'Campaigns Ended', value: endedCount.toString(), icon: XCircle, color: '#6B7280' },
     ];
 
-    const campaigns = [
-        {
-            id: 1,
-            name: 'ASHIK nontraditional - Bengaluru, Karnataka, India Campaign',
-            isNew: true,
-            duration: '21 Oct 2025 - 21 Oct 2025',
-            budget: 'N/A',
-            spend: '₹1,51,439',
-            status: 'Active'
-        }
-    ];
+    const filteredCampaigns = campaigns.filter(camp => 
+        camp.name && camp.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     return (
         <WebLayout role="client" title="My Campaigns">
@@ -67,17 +70,25 @@ export default function MyCampaignsScreen() {
                             {/* CSS-only Donut Chart */}
                             <View style={styles.donutChart}>
                                 <View style={styles.donutHole}>
-                                    <Text style={styles.donutValue}>₹151.4K</Text>
+                                    <Text style={styles.donutValue}>{`₹${(totalSpend / 1000).toFixed(1)}K`}</Text>
                                     <Text style={styles.donutLabel}>Total Spend</Text>
                                 </View>
                             </View>
 
                             <View style={styles.legend}>
-                                <View style={styles.legendItem}>
-                                    <View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} />
-                                    <Text style={styles.legendText} numberOfLines={1}>ASHIK nontraditional - ...</Text>
-                                    <Text style={styles.legendPercent}>100 %</Text>
-                                </View>
+                                {campaigns.slice(0, 3).map((camp, idx) => {
+                                    const spendRatio = totalSpend > 0 ? ((camp.spend || camp.budget || 0) / totalSpend) * 100 : 0;
+                                    const colors = ['#EF4444', '#3B82F6', '#10B981'];
+                                    return (
+                                        <View key={camp.id} style={styles.legendItem}>
+                                            <View style={[styles.legendDot, { backgroundColor: colors[idx % colors.length] }]} />
+                                            <Text style={styles.legendText} numberOfLines={1}>
+                                                {camp.name?.length > 20 ? camp.name.substring(0, 20) + '...' : camp.name}
+                                            </Text>
+                                            <Text style={styles.legendPercent}>{spendRatio.toFixed(0)} %</Text>
+                                        </View>
+                                    );
+                                })}
                             </View>
                         </View>
                     </View>
@@ -96,41 +107,54 @@ export default function MyCampaignsScreen() {
                     </View>
                 </View>
 
-                <View style={styles.campaignList}>
-                    {campaigns.map((campaign) => (
-                        <View key={campaign.id} style={styles.campaignCard}>
-                            <View style={styles.campaignHeader}>
-                                <View style={styles.campaignIcon}>
-                                    <Megaphone size={20} color="#F97316" />
-                                </View>
-                                <View style={styles.campaignTitleRow}>
-                                    <Text style={styles.campaignName}>{campaign.name}</Text>
-                                    {campaign.isNew && (
-                                        <View style={styles.newBadge}>
-                                            <Star size={10} color="#F59E0B" fill="#F59E0B" />
-                                            <Text style={styles.newBadgeText}>New</Text>
-                                        </View>
-                                    )}
-                                </View>
-                            </View>
+                {isLoading ? (
+                    <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 40 }} />
+                ) : filteredCampaigns.length === 0 ? (
+                    <Text style={{ textAlign: 'center', marginTop: 40, color: Colors.text.secondary }}>No campaigns found.</Text>
+                ) : (
+                    <View style={styles.campaignList}>
+                        {filteredCampaigns.map((campaign) => {
+                            const isNew = campaign.createdAt ? Date.now() - new Date(campaign.createdAt).getTime() < 86400000 : false;
+                            const durationStr = `${campaign.startDate || 'N/A'} - ${campaign.endDate || 'N/A'}`;
+                            const budgetStr = campaign.budget ? `₹${campaign.budget.toLocaleString()}` : 'N/A';
+                            const spendStr = campaign.spend ? `₹${campaign.spend.toLocaleString()}` : '₹0';
 
-                            <View style={styles.campaignDetails}>
-                                <View style={styles.detailCol}>
-                                    <Text style={styles.detailLabel}>Duration</Text>
-                                    <Text style={styles.detailValue}>{campaign.duration}</Text>
+                            return (
+                                <View key={campaign.id} style={styles.campaignCard}>
+                                    <View style={styles.campaignHeader}>
+                                        <View style={styles.campaignIcon}>
+                                            <Megaphone size={20} color="#F97316" />
+                                        </View>
+                                        <View style={styles.campaignTitleRow}>
+                                            <Text style={styles.campaignName}>{campaign.name}</Text>
+                                            {isNew && (
+                                                <View style={styles.newBadge}>
+                                                    <Star size={10} color="#F59E0B" fill="#F59E0B" />
+                                                    <Text style={styles.newBadgeText}>New</Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                    </View>
+
+                                    <View style={styles.campaignDetails}>
+                                        <View style={styles.detailCol}>
+                                            <Text style={styles.detailLabel}>Duration</Text>
+                                            <Text style={styles.detailValue}>{durationStr}</Text>
+                                        </View>
+                                        <View style={styles.detailCol}>
+                                            <Text style={styles.detailLabel}>Budget:</Text>
+                                            <Text style={styles.detailValue}>{budgetStr}</Text>
+                                        </View>
+                                        <View style={styles.detailCol}>
+                                            <Text style={styles.detailLabel}>Spend:</Text>
+                                            <Text style={styles.detailValue}>{spendStr}</Text>
+                                        </View>
+                                    </View>
                                 </View>
-                                <View style={styles.detailCol}>
-                                    <Text style={styles.detailLabel}>Budget:</Text>
-                                    <Text style={styles.detailValue}>{campaign.budget}</Text>
-                                </View>
-                                <View style={styles.detailCol}>
-                                    <Text style={styles.detailLabel}>Spend:</Text>
-                                    <Text style={styles.detailValue}>{campaign.spend}</Text>
-                                </View>
-                            </View>
-                        </View>
-                    ))}
-                </View>
+                            );
+                        })}
+                    </View>
+                )}
             </View>
         </WebLayout>
     );

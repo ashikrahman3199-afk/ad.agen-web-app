@@ -15,11 +15,11 @@ import Colors from '@/constants/colors';
 
 export default function PersonalInfoScreen() {
   const router = useRouter();
-  const [name, setName] = useState('Ashik Kumar');
-  const [email, setEmail] = useState('ashik@example.com');
-  const [phone, setPhone] = useState('+91 98765 43210');
-  const [address, setAddress] = useState('123 MG Road, Bangalore');
-  const [dateOfBirth, setDateOfBirth] = useState('15/01/1990');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
 
   const handleSave = () => {
     console.log('Saving personal info...');

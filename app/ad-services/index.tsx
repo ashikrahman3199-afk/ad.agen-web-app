@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Modal, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
     Plane, Clapperboard, MonitorPlay, User, BookOpen, Newspaper, Map, Radio, Tv, Smartphone,
-    MapPin, Star, Filter, Clock, X
+    MapPin, Star, Filter, Clock, X, Navigation, Monitor
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import WebLayout from '@/components/WebLayout';
 import { useApp } from '@/contexts/AppContext';
 import { categories } from '@/constants/adSpaces';
+import { trpc } from '@/lib/trpc';
 import {
     Users, Bus, Car, Zap, Train, Box, Truck
 } from 'lucide-react-native';
@@ -19,97 +20,21 @@ export default function AdServicesScreen() {
     const router = useRouter();
     const { location } = useApp();
     const [activeGenre, setActiveGenre] = useState('All');
-    const [activeFilter, setActiveFilter] = useState('All');
     const [showFilters, setShowFilters] = useState(false);
 
-    // Mock Data with Chennai locations
-    const spaces = [
-        {
-            id: 1,
-            name: 'Prime Billboard - Adyar Signal',
-            type: 'Billboards',
-            image: 'https://images.unsplash.com/photo-1562613531-a1e13337c667?w=800&q=80',
-            rating: 4.8,
-            location: 'Adyar',
-            price: 75000,
-            available: true,
-            genre: 'Outdoor',
-        },
-        {
-            id: 2,
-            name: 'Metro Station Digital Display',
-            type: 'Transit',
-            image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&q=80',
-            rating: 4.5,
-            location: 'Anna Nagar',
-            price: 50000,
-            available: true,
-            genre: 'Digital',
-        },
-        {
-            id: 3,
-            name: 'T. Nagar Bus Stand Hoarding',
-            type: 'Billboards',
-            image: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80',
-            rating: 4.9,
-            location: 'T. Nagar',
-            price: 105000,
-            available: true,
-            genre: 'Outdoor',
-        },
-        {
-            id: 4,
-            name: 'Phoenix Marketcity Screen',
-            type: 'Digital',
-            image: 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&q=80',
-            rating: 4.7,
-            location: 'Velachery',
-            price: 45000,
-            available: true,
-            genre: 'Digital',
-        },
-        {
-            id: 5,
-            name: 'PVR Cinemas - VR Mall',
-            type: 'Cinema',
-            image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&q=80',
-            rating: 4.6,
-            location: 'Anna Nagar',
-            price: 60000,
-            available: false,
-            genre: 'Cinema',
-        },
-        {
-            id: 6,
-            name: 'Airport Lounge Display',
-            type: 'Airport',
-            image: 'https://images.unsplash.com/photo-1569154941061-e231b4725ef1?w=800&q=80',
-            rating: 4.9,
-            location: 'Guindy',
-            price: 90000,
-            available: true,
-            genre: 'Airline',
-        },
-        {
-            id: 7,
-            name: 'OMR IT Park Kiosk',
-            type: 'Digital',
-            image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&q=80',
-            rating: 4.5,
-            location: 'OMR',
-            price: 30000,
-            available: true,
-            genre: 'Digital',
-        },
-    ];
+    const { data: adSpaces = [], isLoading } = trpc.listings.list.useQuery();
 
-    // Icon mapping for dynamic categories
+    const [priceRange, setPriceRange] = useState('All');
+    const [minRating, setMinRating] = useState(0);
+    const [onlyAvailable, setOnlyAvailable] = useState(false);
+
     const iconMap: Record<string, any> = {
         film: Clapperboard,
         newspaper: Newspaper,
         users: Users,
         bus: Bus,
         car: Car,
+        navigation: Navigation,
         zap: Zap,
         train: Train,
         tv: Tv,
@@ -117,7 +42,9 @@ export default function AdServicesScreen() {
         box: Box,
         truck: Truck,
         billboard: MonitorPlay,
+        led_billboard: MonitorPlay,
         radio: Radio,
+        monitor: Monitor,
         'minimize-2': MapPin,
     };
 
@@ -134,18 +61,25 @@ export default function AdServicesScreen() {
 
 
     // Filter Logic
-    const filteredSpaces = spaces.filter(space => {
-        const matchesLocation = location === 'All Chennai' || space.location === location;
+    const filteredSpaces = adSpaces.filter((space: any) => {
+        const matchesLocation = location === 'All Chennai' || location === 'All Locations' || space.location === location;
 
-        const normalizedSpaceGenre = space.genre?.toLowerCase();
-        const normalizedActiveGenre = activeGenre.toLowerCase();
+        const spaceCat = space.category || space.categoryId || space.type;
+        const matchesGenre = activeGenre === 'All' || spaceCat === activeGenre;
 
-        const matchesGenre = activeGenre === 'All' ||
-            normalizedSpaceGenre === normalizedActiveGenre ||
-            space.type.toLowerCase() === normalizedActiveGenre;
+        let matchesPrice = true;
+        if (priceRange === 'Under 50k') matchesPrice = space.price < 50000;
+        else if (priceRange === '50k - 1L') matchesPrice = space.price >= 50000 && space.price <= 100000;
+        else if (priceRange === 'Above 1L') matchesPrice = space.price > 100000;
 
-        return matchesLocation && matchesGenre;
+        const matchesRating = space.rating >= minRating;
+        const matchesAvailability = onlyAvailable ? space.available : true;
+
+        return matchesLocation && matchesGenre && matchesPrice && matchesRating && matchesAvailability;
     });
+
+    // Count active filters
+    const activeFilterCount = (priceRange !== 'All' ? 1 : 0) + (minRating > 0 ? 1 : 0) + (onlyAvailable ? 1 : 0);
 
     return (
         <WebLayout role="client" title="Ad Services">
@@ -173,11 +107,105 @@ export default function AdServicesScreen() {
                         <Text style={styles.pageTitle}>Browse Spaces</Text>
                         <Text style={styles.subtitle}>Showing results for {location}</Text>
                     </View>
-                    <TouchableOpacity style={styles.filterBtn} onPress={() => setShowFilters(!showFilters)}>
-                        <Filter size={18} color={Colors.text.primary} />
-                        <Text style={styles.filterText}>Filters</Text>
+                    <TouchableOpacity style={[styles.filterBtn, activeFilterCount > 0 && { backgroundColor: Colors.primary, borderColor: Colors.primary }]} onPress={() => setShowFilters(true)}>
+                        <Filter size={18} color={activeFilterCount > 0 ? '#FFFFFF' : Colors.text.primary} />
+                        <Text style={[styles.filterText, activeFilterCount > 0 && { color: '#FFFFFF' }]}>
+                            Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ''}
+                        </Text>
                     </TouchableOpacity>
                 </View>
+
+                {/* Filter Modal */}
+                <Modal
+                    visible={showFilters}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={() => setShowFilters(false)}
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalContent}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>Filter Spaces</Text>
+                                <TouchableOpacity onPress={() => setShowFilters(false)}>
+                                    <X size={24} color={Colors.text.primary} />
+                                </TouchableOpacity>
+                            </View>
+
+                            <ScrollView style={styles.modalBody}>
+                                {/* Price Filter */}
+                                <View style={styles.filterSection}>
+                                    <Text style={styles.filterSectionTitle}>Price Range</Text>
+                                    <View style={styles.filterOptionsGrid}>
+                                        {['All', 'Under 50k', '50k - 1L', 'Above 1L'].map(range => (
+                                            <TouchableOpacity 
+                                                key={range}
+                                                style={[styles.filterOptionBtn, priceRange === range && styles.filterOptionBtnActive]}
+                                                onPress={() => setPriceRange(range)}
+                                            >
+                                                <Text style={[styles.filterOptionText, priceRange === range && styles.filterOptionTextActive]}>{range}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
+
+                                {/* Rating Filter */}
+                                <View style={styles.filterSection}>
+                                    <Text style={styles.filterSectionTitle}>Minimum Rating</Text>
+                                    <View style={styles.filterOptionsGrid}>
+                                        {[
+                                            { label: 'Any', value: 0 },
+                                            { label: '3+ Stars', value: 3 },
+                                            { label: '4+ Stars', value: 4 },
+                                            { label: '4.5+ Stars', value: 4.5 }
+                                        ].map(rating => (
+                                            <TouchableOpacity 
+                                                key={rating.label}
+                                                style={[styles.filterOptionBtn, minRating === rating.value && styles.filterOptionBtnActive]}
+                                                onPress={() => setMinRating(rating.value)}
+                                            >
+                                                <Text style={[styles.filterOptionText, minRating === rating.value && styles.filterOptionTextActive]}>{rating.label}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
+
+                                {/* Availability Toggle */}
+                                <View style={[styles.filterSection, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 0 }]}>
+                                    <View>
+                                        <Text style={styles.filterSectionTitle}>Availability</Text>
+                                        <Text style={{fontSize: 12, color: Colors.text.tertiary}}>Show only spaces available now</Text>
+                                    </View>
+                                    <Switch 
+                                        value={onlyAvailable}
+                                        onValueChange={setOnlyAvailable}
+                                        trackColor={{ false: '#E5E7EB', true: Colors.primary }}
+                                        thumbColor="#FFFFFF"
+                                        activeThumbColor="#FFFFFF"
+                                    />
+                                </View>
+                            </ScrollView>
+
+                            <View style={styles.modalFooter}>
+                                <TouchableOpacity 
+                                    style={styles.clearBtn}
+                                    onPress={() => {
+                                        setPriceRange('All');
+                                        setMinRating(0);
+                                        setOnlyAvailable(false);
+                                    }}
+                                >
+                                    <Text style={styles.clearBtnText}>Clear All</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                    style={styles.applyBtn}
+                                    onPress={() => setShowFilters(false)}
+                                >
+                                    <Text style={styles.applyBtnText}>Apply Filters</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
 
 
                 {/* Spaces Grid */}
@@ -185,23 +213,23 @@ export default function AdServicesScreen() {
                     {filteredSpaces.length > 0 ? (
                         filteredSpaces.map((space) => (
                             <TouchableOpacity key={space.id} style={styles.card} onPress={() => router.push(`/ad-space/${space.id}`)}>
-                                <Image source={{ uri: space.image }} style={styles.cardImage} />
+                                <Image source={{ uri: space.imageUrl || space.image || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80' }} style={styles.cardImage} />
                                 <View style={styles.cardContent}>
                                     <View style={styles.cardHeader}>
                                         <View style={styles.typeTag}>
-                                            <Text style={styles.typeText}>{space.type}</Text>
+                                            <Text style={styles.typeText}>{categories.find(c => c.id === (space.category || space.categoryId || space.type))?.name || (space.category || space.categoryId || space.type)}</Text>
                                         </View>
                                         <View style={styles.ratingBadge}>
                                             <Star size={14} color="#F59E0B" fill="#F59E0B" />
-                                            <Text style={styles.ratingText}>{space.rating}</Text>
+                                            <Text style={styles.ratingText}>{space.rating || '4.5'}</Text>
                                         </View>
                                     </View>
 
-                                    <Text style={styles.cardTitle} numberOfLines={2}>{space.name}</Text>
+                                    <Text style={styles.cardTitle} numberOfLines={2}>{space.title || space.name}</Text>
 
                                     <View style={styles.locationRow}>
                                         <MapPin size={14} color={Colors.text.tertiary} />
-                                        <Text style={styles.locationText}>{space.location}, Chennai</Text>
+                                        <Text style={styles.locationText}>{space.location || 'Chennai'}</Text>
                                     </View>
 
                                     <View style={styles.divider} />
@@ -210,11 +238,11 @@ export default function AdServicesScreen() {
                                         <View>
                                             <Text style={styles.priceLabel}>Starting from</Text>
                                             <Text style={styles.priceValue}>
-                                                ₹{space.price.toLocaleString()}
-                                                <Text style={styles.priceUnit}>/day</Text>
+                                                ₹{space.price ? space.price.toLocaleString() : 'N/A'}
+                                                <Text style={styles.priceUnit}>{space.priceUnit ? `/${space.priceUnit}` : ''}</Text>
                                             </Text>
                                         </View>
-                                        {space.available && (
+                                        {(space.available || space.status === 'ACTIVE') && (
                                             <View style={styles.availableBadge}>
                                                 <Clock size={14} color="#10B981" />
                                                 <Text style={styles.availableText}>Available Now</Text>
@@ -439,5 +467,107 @@ const styles = StyleSheet.create({
     noResultsText: {
         fontSize: 16,
         color: Colors.text.secondary,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContent: {
+        width: '90%',
+        maxWidth: 500,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        ...Colors.shadow.large,
+        maxHeight: '80%',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 24,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: Colors.text.primary,
+    },
+    modalBody: {
+        padding: 24,
+    },
+    filterSection: {
+        marginBottom: 24,
+        paddingBottom: 24,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+    },
+    filterSectionTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: Colors.text.primary,
+        marginBottom: 16,
+    },
+    filterOptionsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+    },
+    filterOptionBtn: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        backgroundColor: '#FFFFFF',
+    },
+    filterOptionBtnActive: {
+        backgroundColor: Colors.primary,
+        borderColor: Colors.primary,
+    },
+    filterOptionText: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: Colors.text.secondary,
+    },
+    filterOptionTextActive: {
+        color: '#FFFFFF',
+        fontWeight: '600',
+    },
+    modalFooter: {
+        flexDirection: 'row',
+        padding: 24,
+        borderTopWidth: 1,
+        borderTopColor: '#F3F4F6',
+        gap: 16,
+    },
+    clearBtn: {
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    clearBtnText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: Colors.text.secondary,
+    },
+    applyBtn: {
+        flex: 2,
+        paddingVertical: 14,
+        borderRadius: 12,
+        backgroundColor: Colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    applyBtnText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#FFFFFF',
     },
 });

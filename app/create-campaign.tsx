@@ -33,9 +33,9 @@ export default function CreateCampaignScreen() {
   const { cart, cartTotal } = useApp();
   const [currentStep, setCurrentStep] = useState<Step>('details');
   
-  const [campaignName, setCampaignName] = useState('Summer sale');
-  const [startDate, setStartDate] = useState(new Date(2025, 11, 11));
-  const [endDate, setEndDate] = useState(new Date(2026, 0, 11));
+  const [campaignName, setCampaignName] = useState('');
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 

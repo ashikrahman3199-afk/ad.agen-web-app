@@ -4,7 +4,7 @@ import { db } from "../../db";
 import { sns } from "../../lib/sns";
 import { PutCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
 import { PublishCommand } from "@aws-sdk/client-sns";
-import { CognitoIdentityProviderClient, InitiateAuthCommand, SignUpCommand } from "@aws-sdk/client-cognito-identity-provider";
+import { CognitoIdentityProviderClient, InitiateAuthCommand, SignUpCommand, ForgotPasswordCommand, ConfirmForgotPasswordCommand } from "@aws-sdk/client-cognito-identity-provider";
 import { TABLE_NAMES } from "../../config";
 import { sign } from "hono/jwt";
 
@@ -17,13 +17,16 @@ const CLIENT_ID = "qi8njk53r44pfkfirmiid8681"; // User App / Vendor App Cognito 
 export const authRouter = createTRPCRouter({
     register: publicProcedure
         .input(z.object({
+            name: z.string(),
             email: z.string().email(),
             password: z.string().min(6),
             phoneNumber: z.string(),
+            company: z.string().optional(),
+            gst: z.string().optional(),
             role: z.enum(['client', 'vendor'])
         }))
         .mutation(async ({ input }) => {
-            const { email, password, phoneNumber, role } = input;
+            const { name, email, password, phoneNumber, company, gst, role } = input;
             
             const tableName = role === 'client' ? TABLE_NAMES.USER_PROFILE : TABLE_NAMES.VENDOR;
             const prefix = role === 'client' ? 'User' : 'Vendor';
@@ -50,8 +53,11 @@ export const authRouter = createTRPCRouter({
             // 2. Create Profile in DynamoDB
             const userRecord = {
                 id: userId,
+                name,
                 email: email.toLowerCase(),
                 phoneNumber,
+                company: company || "",
+                gst: gst || "",
                 role,
                 createdAt: new Date().toISOString(),
                 __typename: prefix,
@@ -79,6 +85,7 @@ export const authRouter = createTRPCRouter({
                 token,
                 user: {
                     id: userId,
+                    name,
                     role: userRecord.role,
                     email: userRecord.email,
                     phoneNumber: userRecord.phoneNumber
@@ -286,4 +293,44 @@ export const authRouter = createTRPCRouter({
                 }
             };
         }),
+
+    forgotPassword: publicProcedure
+        .input(z.object({
+            email: z.string().email(),
+        }))
+        .mutation(async ({ input }) => {
+            const { email } = input;
+            try {
+                await cognitoClient.send(new ForgotPasswordCommand({
+                    ClientId: CLIENT_ID,
+                    Username: email.toLowerCase()
+                }));
+                return { success: true };
+            } catch (error: any) {
+                console.error("Forgot Password Error:", error);
+                throw new Error(error.message || "Failed to initiate password reset.");
+            }
+        }),
+
+    resetPassword: publicProcedure
+        .input(z.object({
+            email: z.string().email(),
+            code: z.string().min(1, "Verification code is required"),
+            newPassword: z.string().min(6, "Password must be at least 6 characters")
+        }))
+        .mutation(async ({ input }) => {
+            const { email, code, newPassword } = input;
+            try {
+                await cognitoClient.send(new ConfirmForgotPasswordCommand({
+                    ClientId: CLIENT_ID,
+                    Username: email.toLowerCase(),
+                    ConfirmationCode: code,
+                    Password: newPassword
+                }));
+                return { success: true };
+            } catch (error: any) {
+                console.error("Reset Password Error:", error);
+                throw new Error(error.message || "Failed to reset password. Please check your code.");
+            }
+        })
 });

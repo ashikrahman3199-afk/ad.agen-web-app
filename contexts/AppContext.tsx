@@ -1,6 +1,6 @@
 import createContextHook from '@nkzw/create-context-hook';
-import { useState, useCallback, useMemo, useEffect } from 'react';
-import { useRouter, useSegments } from 'expo-router';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import { AdSpace } from '@/constants/adSpaces';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -51,10 +51,18 @@ export interface Notification {
 
 export type UserRole = 'client' | 'vendor' | null;
 
+export interface User {
+  id: string;
+  email?: string;
+  phoneNumber?: string;
+  role: UserRole;
+}
+
 export const [AppProvider, useApp] = createContextHook(() => {
   const router = useRouter();
   const segments = useSegments();
   const [userRole, setUserRole] = useState<UserRole>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<AdSpace[]>([]);
@@ -62,32 +70,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const [currentCampaign, setCurrentCampaign] = useState<Partial<Campaign> | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      title: 'Campaign Approved',
-      message: 'Your Summer Sale 2025 campaign has been approved and is now live!',
-      type: 'success',
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-      read: false,
-    },
-    {
-      id: '2',
-      title: 'New Ad Space Available',
-      message: 'Premium billboard spot at VR Mall is now available for booking.',
-      type: 'info',
-      timestamp: new Date(Date.now() - 7200000).toISOString(),
-      read: false,
-    },
-    {
-      id: '3',
-      title: 'Payment Successful',
-      message: 'Your payment of ₹75,000 has been processed successfully.',
-      type: 'success',
-      timestamp: new Date(Date.now() - 86400000).toISOString(),
-      read: true,
-    },
-  ]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [selectedLocation, setSelectedLocation] = useState('All Chennai');
   const [activeGenre, setActiveGenre] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -220,10 +203,16 @@ export const [AppProvider, useApp] = createContextHook(() => {
     return wishlist.some(item => item.id === id);
   }, [wishlist]);
 
-  const login = useCallback(async (role: 'client' | 'vendor', token?: string) => {
+  const login = useCallback(async (role: 'client' | 'vendor', token?: string, userData?: User) => {
     setUserRole(role);
+    if (userData) {
+      setUser(userData);
+    }
     if (token) {
       await AsyncStorage.setItem('authToken', token);
+      if (userData) {
+        await AsyncStorage.setItem('userData', JSON.stringify(userData));
+      }
     }
     if (role === 'client') {
       router.replace('/(tabs)/home');
@@ -234,30 +223,53 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   const logout = useCallback(async () => {
     setUserRole(null);
+    setUser(null);
     await AsyncStorage.removeItem('authToken');
+    await AsyncStorage.removeItem('userData');
     router.replace('/login');
   }, []);
 
+  const rootNavigationState = useRootNavigationState();
+
   // Strict RBAC Redirection
   useEffect(() => {
+    if (!rootNavigationState?.key) return;
     const inAuthGroup = segments[0] === '(auth)'; // Assuming login/signup are in (auth) or root
     const inClientGroup = segments[0] === '(tabs)' || segments[0] === 'ad-services' || segments[0] === '(ad-space)' || segments[0] === 'campaigns'; // Add other client routes
     const inVendorGroup = segments[0] === 'vendor';
     const isLoginPage = segments[0] === 'login' || segments[0] === 'signup';
 
-    if (!userRole && !isLoginPage) {
-      // Allow public access or redirect to login? 
-      // For now, if no role and trying to access protected, go to login.
-      // router.replace('/login'); 
-      // Be careful with infinite loops.
+    const protectedClientRoutes = ['(tabs)', 'ad-services', '(ad-space)', 'campaigns', 'wishlist', 'settings'];
+    const protectedVendorRoutes = ['vendor'];
+
+    if (!userRole) {
+      if (segments[0] && (protectedClientRoutes.includes(segments[0]) || protectedVendorRoutes.includes(segments[0]))) {
+         setTimeout(() => router.replace('/login'), 0);
+      }
     }
 
     if (userRole === 'client' && inVendorGroup) {
-      router.replace('/(tabs)/home');
+      setTimeout(() => router.replace('/(tabs)/home'), 0);
     } else if (userRole === 'vendor' && inClientGroup) {
-      router.replace('/vendor/dashboard');
+      setTimeout(() => router.replace('/vendor/dashboard'), 0);
     }
-  }, [userRole, segments]);
+  }, [userRole, segments, rootNavigationState?.key]);
+
+  useEffect(() => {
+    const loadSession = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem('userData');
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          if (!userRole) setUserRole(parsedUser.role);
+        }
+      } catch (e) {
+        console.error("Failed to load user session", e);
+      }
+    };
+    loadSession();
+  }, []);
 
   return useMemo(() => ({
     cart,
@@ -298,7 +310,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
     searchQuery,
     setSearchQuery,
     userRole,
+    user,
     login,
     logout,
-  }), [cart, addToCart, removeFromCart, updateCartItemDuration, clearCart, cartTotal, cartItemCount, wishlist, addToWishlist, removeFromWishlist, isInWishlist, campaigns, createCampaign, updateCampaign, deleteCampaign, currentCampaign, bookings, createBooking, updateBooking, paymentMethods, addPaymentMethod, removePaymentMethod, notifications, markNotificationAsRead, markAllNotificationsAsRead, deleteNotification, unreadNotificationCount, selectedLocation, activeGenre, searchQuery, userRole, login, logout]);
+  }), [cart, addToCart, removeFromCart, updateCartItemDuration, clearCart, cartTotal, cartItemCount, wishlist, addToWishlist, removeFromWishlist, isInWishlist, campaigns, createCampaign, updateCampaign, deleteCampaign, currentCampaign, bookings, createBooking, updateBooking, paymentMethods, addPaymentMethod, removePaymentMethod, notifications, markNotificationAsRead, markAllNotificationsAsRead, deleteNotification, unreadNotificationCount, selectedLocation, activeGenre, searchQuery, userRole, user, login, logout]);
 });

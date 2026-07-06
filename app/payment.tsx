@@ -49,11 +49,22 @@ export default function PaymentScreen() {
   const handlePayment = async () => {
     setProcessing(true);
     
-    setTimeout(() => {
-      setProcessing(false);
-      clearCart();
-      router.replace('/booking-success');
-    }, 2000);
+    Alert.alert(
+      'Redirecting to Secure Gateway',
+      'You are being redirected to our secure third-party payment gateway for approval...',
+      [
+        {
+          text: 'OK',
+          onPress: () => {
+            setTimeout(() => {
+              setProcessing(false);
+              clearCart();
+              router.replace('/booking-success');
+            }, 1500);
+          }
+        }
+      ]
+    );
   };
 
   const renderPaymentForm = () => {

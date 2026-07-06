@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Image,
   Dimensions,
   ColorValue,
+  ActivityIndicator,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,10 +23,13 @@ import {
   CheckCircle2,
   ShoppingCart,
   Heart,
+  Minus,
+  Plus,
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { adSpaces } from '@/constants/adSpaces';
 import { useApp } from '@/contexts/AppContext';
+import { trpc } from '@/lib/trpc';
+import { categoryFieldsMap } from '@/constants/categoryFields';
 
 const { width } = Dimensions.get('window');
 
@@ -33,12 +37,27 @@ export default function ServiceDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { addToCart, addToWishlist, removeFromWishlist, isInWishlist } = useApp();
+  
+  const { data: service, isLoading, error } = trpc.listings.get.useQuery({ id: id as string });
+
   const [selectedDuration, setSelectedDuration] = useState(1);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  const service = adSpaces.find(s => s.id === id);
+  useEffect(() => {
+      if (service) {
+          setSelectedDuration(service.minDuration || 1);
+      }
+  }, [service]);
 
-  if (!service) {
+  if (isLoading) {
+      return (
+          <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+          </View>
+      );
+  }
+
+  if (!service || error) {
     return (
       <View style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
@@ -47,38 +66,20 @@ export default function ServiceDetailScreen() {
     );
   }
 
-  const durations = [
-    { label: '1 Week', value: 1, discount: 0 },
-    { label: '2 Weeks', value: 2, discount: 5 },
-    { label: '1 Month', value: 4, discount: 10 },
-    { label: '3 Months', value: 12, discount: 20 },
-  ];
+  const handleIncrement = () => {
+      setSelectedDuration(prev => prev + 1);
+  };
 
-  const availableDates = [
-    { date: new Date(2025, 0, 15), status: 'available' as const },
-    { date: new Date(2025, 0, 20), status: 'available' as const },
-    { date: new Date(2025, 0, 25), status: 'limited' as const },
-    { date: new Date(2025, 1, 1), status: 'available' as const },
-    { date: new Date(2025, 1, 10), status: 'available' as const },
-    { date: new Date(2025, 1, 15), status: 'booked' as const },
-  ];
-
-  const priceRanges = [
-    { period: 'Peak Season', price: service.price * 1.3, months: 'Dec - Feb' },
-    { period: 'Regular', price: service.price, months: 'Mar - Aug' },
-    { period: 'Off Season', price: service.price * 0.8, months: 'Sep - Nov' },
-  ];
+  const handleDecrement = () => {
+      setSelectedDuration(prev => (prev > (service.minDuration || 1) ? prev - 1 : prev));
+  };
 
   const calculateTotal = () => {
-    const selectedDurationData = durations.find(d => d.value === selectedDuration);
-    const discount = selectedDurationData?.discount || 0;
-    const subtotal = service.price * selectedDuration;
-    const discountAmount = (subtotal * discount) / 100;
-    return subtotal - discountAmount;
+    return service.price * selectedDuration;
   };
 
   const handleAddToCart = () => {
-    addToCart(service, selectedDuration);
+    addToCart(service as any, selectedDuration); // Type cast for now as app context might expect older type
     router.push('/(tabs)/cart');
   };
 
@@ -86,9 +87,12 @@ export default function ServiceDetailScreen() {
     if (isInWishlist(service.id)) {
       removeFromWishlist(service.id);
     } else {
-      addToWishlist(service);
+      addToWishlist(service as any);
     }
   };
+
+  // Get field definitions for nice labels
+  const categoryConfig = categoryFieldsMap[service.category] || null;
 
   return (
     <View style={styles.container}>
@@ -100,7 +104,7 @@ export default function ServiceDetailScreen() {
         contentContainerStyle={styles.contentContainer}
       >
         <View style={styles.imageContainer}>
-          <Image source={{ uri: service.image }} style={styles.image} />
+          <Image source={{ uri: service.image || 'https://via.placeholder.com/800x600' }} style={styles.image} />
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.7)']}
             style={styles.imageGradient}
@@ -112,7 +116,7 @@ export default function ServiceDetailScreen() {
             <ArrowLeft size={24} color={Colors.text.inverse} />
           </TouchableOpacity>
           <View style={styles.imageInfo}>
-            <Text style={styles.imageTitle}>{service.title}</Text>
+            <Text style={styles.imageTitle}>{service.name || service.title}</Text>
             <View style={styles.imageLocation}>
               <MapPin size={16} color={Colors.text.inverse} />
               <Text style={styles.imageLocationText}>{service.location}</Text>
@@ -126,14 +130,14 @@ export default function ServiceDetailScreen() {
               <View style={styles.statIcon}>
                 <Star size={20} color={Colors.accent} fill={Colors.accent} />
               </View>
-              <Text style={styles.statValue}>{service.rating}</Text>
+              <Text style={styles.statValue}>{service.rating || 'New'}</Text>
               <Text style={styles.statLabel}>Rating</Text>
             </View>
             <View style={styles.statItem}>
               <View style={styles.statIcon}>
                 <Users size={20} color={Colors.primary} />
               </View>
-              <Text style={styles.statValue}>{service.reach.split(' ')[0]}</Text>
+              <Text style={styles.statValue}>{service.reach?.split(' ')[0] || 'TBD'}</Text>
               <Text style={styles.statLabel}>Reach</Text>
             </View>
             <View style={styles.statItem}>
@@ -146,132 +150,74 @@ export default function ServiceDetailScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>About</Text>
-            <Text style={styles.description}>{service.description}</Text>
-            <Text style={styles.reach}>{service.reach}</Text>
+            <Text style={styles.sectionTitle}>About This Space</Text>
+            <Text style={styles.description}>{service.description || 'No description provided.'}</Text>
           </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Features</Text>
-            <View style={styles.featuresList}>
-              {service.features.map((feature, index) => (
-                <View key={index} style={styles.featureItem}>
-                  <CheckCircle2 size={18} color={Colors.success} />
-                  <Text style={styles.featureText}>{feature}</Text>
+          {/* Dynamic Metadata Details */}
+          {service.metadata && Object.keys(service.metadata).length > 0 && (
+              <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Specifications</Text>
+                  <View style={styles.metaGrid}>
+                      {Object.entries(service.metadata).map(([key, value]) => {
+                          if (!value) return null;
+                          const fieldConfig = categoryConfig?.fields.find(f => f.name === key);
+                          const label = fieldConfig ? fieldConfig.label : key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                          return (
+                              <View key={key} style={styles.metaItem}>
+                                  <Text style={styles.metaLabel}>{label}</Text>
+                                  <Text style={styles.metaValue}>{String(value)}</Text>
+                              </View>
+                          );
+                      })}
+                  </View>
+              </View>
+          )}
+
+          {/* Sub Services */}
+          {service.subServices && service.subServices.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Included Services</Text>
+                <View style={styles.featuresList}>
+                  {service.subServices.map((feat: string, index: number) => (
+                    <View key={index} style={styles.featureItem}>
+                      <CheckCircle2 size={18} color={Colors.success} />
+                      <Text style={styles.featureText}>{feat}</Text>
+                    </View>
+                  ))}
                 </View>
-              ))}
-            </View>
-          </View>
+              </View>
+          )}
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Price Ranges</Text>
+            <Text style={styles.sectionTitle}>Pricing Structure</Text>
             <View style={styles.priceRangesList}>
-              {priceRanges.map((range, index) => (
-                <View key={index} style={styles.priceRangeItem}>
+                <View style={styles.priceRangeItem}>
                   <View style={styles.priceRangeHeader}>
-                    <Text style={styles.priceRangePeriod}>{range.period}</Text>
-                    <Text style={styles.priceRangeMonths}>{range.months}</Text>
+                    <Text style={styles.priceRangePeriod}>Vendor Rate</Text>
+                    <Text style={styles.priceRangeMonths}>Minimum required: {service.minDuration} {service.priceUnit || 'Days'}</Text>
                   </View>
                   <Text style={styles.priceRangePrice}>
-                    ₹{range.price.toLocaleString('en-IN')}
-                    <Text style={styles.priceRangeUnit}> per {service.priceUnit}</Text>
+                    ₹{service.price?.toLocaleString('en-IN') || 0}
+                    <Text style={styles.priceRangeUnit}> per {service.priceUnit || 'Days'}</Text>
                   </Text>
                 </View>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Available Dates</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.datesContainer}
-            >
-              {availableDates.map((item, index) => {
-                const isSelected = selectedDate?.getTime() === item.date.getTime();
-                const isAvailable = item.status === 'available';
-                const isLimited = item.status === 'limited';
-                
-                return (
-                  <TouchableOpacity
-                    key={index}
-                    style={[
-                      styles.dateCard,
-                      isSelected && styles.dateCardSelected,
-                      !isAvailable && !isLimited && styles.dateCardDisabled,
-                    ]}
-                    onPress={() => isAvailable || isLimited ? setSelectedDate(item.date) : null}
-                    disabled={!isAvailable && !isLimited}
-                  >
-                    <Text style={[
-                      styles.dateMonth,
-                      isSelected && styles.dateTextSelected,
-                      !isAvailable && !isLimited && styles.dateTextDisabled,
-                    ]}>
-                      {item.date.toLocaleDateString('en-US', { month: 'short' })}
-                    </Text>
-                    <Text style={[
-                      styles.dateDay,
-                      isSelected && styles.dateTextSelected,
-                      !isAvailable && !isLimited && styles.dateTextDisabled,
-                    ]}>
-                      {item.date.getDate()}
-                    </Text>
-                    <View style={[
-                      styles.statusDot,
-                      item.status === 'available' && styles.statusAvailable,
-                      item.status === 'limited' && styles.statusLimited,
-                      item.status === 'booked' && styles.statusBooked,
-                    ]} />
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-            <View style={styles.legend}>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, styles.statusAvailable]} />
-                <Text style={styles.legendText}>Available</Text>
-              </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, styles.statusLimited]} />
-                <Text style={styles.legendText}>Limited</Text>
-              </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, styles.statusBooked]} />
-                <Text style={styles.legendText}>Booked</Text>
-              </View>
             </View>
           </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Select Duration</Text>
-            <View style={styles.durationGrid}>
-              {durations.map((duration) => {
-                const isSelected = selectedDuration === duration.value;
-                return (
-                  <TouchableOpacity
-                    key={duration.value}
-                    style={[
-                      styles.durationCard,
-                      isSelected && styles.durationCardSelected,
-                    ]}
-                    onPress={() => setSelectedDuration(duration.value)}
-                  >
-                    <Text style={[
-                      styles.durationLabel,
-                      isSelected && styles.durationLabelSelected,
-                    ]}>
-                      {duration.label}
-                    </Text>
-                    {duration.discount > 0 && (
-                      <View style={styles.discountBadge}>
-                        <Text style={styles.discountText}>-{duration.discount}%</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
+            <View style={styles.counterContainer}>
+                <TouchableOpacity style={styles.counterBtn} onPress={handleDecrement} disabled={selectedDuration <= (service.minDuration || 1)}>
+                    <Minus size={20} color={selectedDuration <= (service.minDuration || 1) ? Colors.text.tertiary : Colors.primary} />
+                </TouchableOpacity>
+                <View style={styles.counterValueContainer}>
+                    <Text style={styles.counterValue}>{selectedDuration}</Text>
+                    <Text style={styles.counterUnit}>{service.priceUnit ? service.priceUnit.toUpperCase() : 'DAYS'}</Text>
+                </View>
+                <TouchableOpacity style={styles.counterBtn} onPress={handleIncrement}>
+                    <Plus size={20} color={Colors.primary} />
+                </TouchableOpacity>
             </View>
           </View>
 
@@ -282,7 +228,10 @@ export default function ServiceDetailScreen() {
       <View style={styles.footer}>
         <View style={styles.priceContainer}>
           <Text style={styles.priceLabel}>Total Amount</Text>
-          <Text style={styles.priceValue}>₹{calculateTotal().toLocaleString('en-IN')}</Text>
+          <View style={{flexDirection: 'row', alignItems: 'baseline', gap: 6}}>
+             <Text style={styles.priceValue}>₹{calculateTotal().toLocaleString('en-IN')}</Text>
+             <Text style={styles.priceRangeUnit}>for {selectedDuration} {service.priceUnit || 'Days'}</Text>
+          </View>
         </View>
         <View style={styles.actionButtons}>
           <TouchableOpacity
@@ -416,9 +365,31 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 15,
-    color: Colors.text.primary,
+    color: Colors.text.secondary,
     lineHeight: 22,
     marginBottom: 8,
+  },
+  metaGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 16,
+      backgroundColor: '#F9FAFB',
+      padding: 16,
+      borderRadius: 12,
+  },
+  metaItem: {
+      width: '45%',
+      marginBottom: 8,
+  },
+  metaLabel: {
+      fontSize: 12,
+      color: Colors.text.tertiary,
+      marginBottom: 4,
+  },
+  metaValue: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: Colors.text.primary,
   },
   reach: {
     fontSize: 14,
@@ -445,7 +416,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: 12,
     padding: 16,
-    ...Colors.shadow.small,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   priceRangeHeader: {
     flexDirection: 'row',
@@ -469,122 +441,34 @@ const styles = StyleSheet.create({
   },
   priceRangeUnit: {
     fontSize: 12,
-    fontWeight: '400' as const,
+    fontWeight: '500' as const,
     color: Colors.text.secondary,
   },
-  datesContainer: {
-    gap: 12,
-    paddingBottom: 12,
+  counterContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#FFFFFF',
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#E5E7EB',
+      alignSelf: 'flex-start',
   },
-  dateCard: {
-    width: 80,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    gap: 4,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    ...Colors.shadow.small,
+  counterBtn: {
+      padding: 16,
   },
-  dateCardSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: `${Colors.primary}10`,
+  counterValueContainer: {
+      alignItems: 'center',
+      paddingHorizontal: 24,
   },
-  dateCardDisabled: {
-    opacity: 0.5,
+  counterValue: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: Colors.text.primary,
   },
-  dateMonth: {
-    fontSize: 12,
-    color: Colors.text.secondary,
-    fontWeight: '600' as const,
-  },
-  dateDay: {
-    fontSize: 20,
-    fontWeight: '700' as const,
-    color: Colors.text.primary,
-  },
-  dateTextSelected: {
-    color: Colors.primary,
-  },
-  dateTextDisabled: {
-    color: Colors.text.tertiary,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginTop: 4,
-  },
-  statusAvailable: {
-    backgroundColor: Colors.success,
-  },
-  statusLimited: {
-    backgroundColor: Colors.accent,
-  },
-  statusBooked: {
-    backgroundColor: Colors.error,
-  },
-  legend: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 20,
-    marginTop: 12,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  legendText: {
-    fontSize: 12,
-    color: Colors.text.secondary,
-  },
-  durationGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  durationCard: {
-    width: (width - 64) / 2,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: Colors.border.light,
-    position: 'relative' as const,
-  },
-  durationCardSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: `${Colors.primary}10`,
-  },
-  durationLabel: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: Colors.text.primary,
-  },
-  durationLabelSelected: {
-    color: Colors.primary,
-  },
-  discountBadge: {
-    position: 'absolute' as const,
-    top: -8,
-    right: -8,
-    backgroundColor: Colors.accent,
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  discountText: {
-    fontSize: 10,
-    fontWeight: '700' as const,
-    color: Colors.text.primary,
+  counterUnit: {
+      fontSize: 10,
+      color: Colors.text.tertiary,
+      marginTop: 2,
   },
   bottomSpacer: {
     height: 20,
@@ -600,9 +484,12 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 30,
     ...Colors.shadow.large,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
   },
   priceContainer: {
-    marginBottom: 16,
+    flex: 1,
   },
   priceLabel: {
     fontSize: 12,
@@ -617,6 +504,7 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     gap: 12,
+    flex: 1,
   },
   cartButton: {
     width: 56,

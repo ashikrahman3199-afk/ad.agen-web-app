@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Platform, TextInput, Modal, FlatList } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter, usePathname } from 'expo-router';
-import { LayoutDashboard, ShoppingBag, Settings, Bell, Search, LogOut, Menu, X, Megaphone, MapPin, ChevronDown } from 'lucide-react-native';
+import { LayoutDashboard, ShoppingBag, Settings, Bell, Search, LogOut, Menu, X, Megaphone, MapPin, ChevronDown, Heart } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
+import { SearchCommand } from './SearchCommand';
+import { trpc } from '@/lib/trpc';
+
+const clientLogo = require('@/assets/images/logo-client-black.png');
+const vendorLogoBlack = require('@/assets/images/logo-vendor-black.png');
 
 const { width } = Dimensions.get('window');
 const IS_WEB = Platform.OS === 'web';
@@ -19,31 +25,26 @@ export default function WebLayout({ children, role, title }: WebLayoutProps) {
     const router = useRouter();
     const pathname = usePathname();
     const [isSidebarOpen, setIsSidebarOpen] = React.useState(width > 768);
-    const { location, setLocation, searchQuery, setSearchQuery } = useApp();
+    const { location, setLocation, searchQuery, setSearchQuery, logout } = useApp();
     const [showLocationDropdown, setShowLocationDropdown] = useState(false);
-    const [showNotifications, setShowNotifications] = React.useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
-    const chennaiLocations = [
-        'All Chennai',
-        'Adyar',
-        'Anna Nagar',
-        'T. Nagar',
-        'Velachery',
-        'OMR',
-        'Guindy',
-        'Mylapore'
-    ];
+    const { data: listings = [] } = trpc.listings.list.useQuery();
+    const dynamicLocations = ['All Chennai', ...Array.from(new Set(listings.map((l: any) => l.location).filter(Boolean)))];
 
     const menuItems = role === 'client' ? [
         { icon: LayoutDashboard, label: 'Home', path: '/(tabs)/home' },
         { icon: Search, label: 'Ad Services', path: '/ad-services' }, // Moved up
         { icon: Megaphone, label: 'My Campaigns', path: '/campaigns' },
+        { icon: Heart, label: 'Favourites', path: '/wishlist' },
         { icon: ShoppingBag, label: 'My Cart', path: '/(tabs)/cart' },
         { icon: Settings, label: 'Settings', path: '/settings' },
     ] : [
         { icon: LayoutDashboard, label: 'Overview', path: '/vendor/dashboard' },
         { icon: ShoppingBag, label: 'Listings', path: '/vendor/listings' },
         { icon: Bell, label: 'Requests', path: '/vendor/requests' },
+        { icon: Settings, label: 'Settings', path: '/vendor/settings' },
     ];
 
     const handleLogout = () => {
@@ -60,7 +61,7 @@ export default function WebLayout({ children, role, title }: WebLayoutProps) {
                 <View style={styles.sidebar}>
                     <View style={styles.sidebarHeader}>
                         <TouchableOpacity onPress={() => router.push(role === 'client' ? '/(tabs)/home' : '/vendor/dashboard')}>
-                            <Text style={styles.logo}>ad<Text style={[styles.logoHighlight, { color: activeColor }]}>.</Text>agen</Text>
+                            <Image source={role === 'client' ? clientLogo : vendorLogoBlack} style={styles.logoImage} contentFit="contain" />
                         </TouchableOpacity>
                         {width <= 768 && (
                             <TouchableOpacity onPress={() => setIsSidebarOpen(false)}>
@@ -141,17 +142,17 @@ export default function WebLayout({ children, role, title }: WebLayoutProps) {
 
                             {showLocationDropdown && (
                                 <View style={styles.locationDropdown}>
-                                    {chennaiLocations.map((loc) => (
+                                    {dynamicLocations.map((loc: unknown) => (
                                         <TouchableOpacity
-                                            key={loc}
+                                            key={loc as string}
                                             style={styles.locationOption}
                                             onPress={() => {
-                                                setLocation(loc);
+                                                setLocation(loc as string);
                                                 setShowLocationDropdown(false);
                                             }}
                                         >
-                                            <Text style={[styles.locationOptionText, location === loc && { color: activeColor, fontWeight: '600' }]}>
-                                                {loc}
+                                            <Text style={[styles.locationOptionText, location === (loc as string) && { color: activeColor, fontWeight: '600' }]}>
+                                                {loc as string}
                                             </Text>
                                         </TouchableOpacity>
                                     ))}
@@ -162,39 +163,63 @@ export default function WebLayout({ children, role, title }: WebLayoutProps) {
                         <View style={{ position: 'relative', zIndex: 100 }}>
                             <TouchableOpacity
                                 style={styles.iconButton}
-                                onPress={() => setShowNotifications(!showNotifications)}
+                                onPress={() => {
+                                    setShowNotifications(!showNotifications);
+                                    setShowProfileDropdown(false);
+                                    setShowLocationDropdown(false);
+                                }}
                             >
                                 <Bell size={20} color={Colors.text.primary} />
-                                <View style={[styles.badge, { backgroundColor: activeColor }]} />
                             </TouchableOpacity>
 
                             {showNotifications && (
                                 <View style={styles.notificationDropdown}>
                                     <Text style={styles.notificationTitle}>Notifications</Text>
-                                    <View style={styles.notificationItem}>
-                                        <View style={[styles.notificationDot, { backgroundColor: activeColor }]} />
-                                        <View>
-                                            <Text style={styles.notificationText}>Campaign approved</Text>
-                                            <Text style={styles.notificationTime}>2 mins ago</Text>
-                                        </View>
-                                    </View>
-                                    <View style={styles.notificationItem}>
-                                        <View style={[styles.notificationDot, { backgroundColor: activeColor }]} />
-                                        <View>
-                                            <Text style={styles.notificationText}>New message from vendor</Text>
-                                            <Text style={styles.notificationTime}>1 hour ago</Text>
-                                        </View>
+                                    <View style={{ paddingVertical: 16, alignItems: 'center' }}>
+                                        <Text style={{ color: Colors.text.tertiary, fontSize: 14 }}>No new notifications</Text>
                                     </View>
                                 </View>
                             )}
                         </View>
 
-                        <TouchableOpacity
-                            style={[styles.avatar, { backgroundColor: activeColor }]}
-                            onPress={() => router.push(role === 'client' ? '/(tabs)/services' : '/vendor/profile')}
-                        >
-                            <Text style={styles.avatarText}>{role === 'client' ? 'C' : 'V'}</Text>
-                        </TouchableOpacity>
+                        <View style={{ position: 'relative', zIndex: 100 }}>
+                            <TouchableOpacity
+                                style={[styles.avatar, { backgroundColor: activeColor }]}
+                                onPress={() => {
+                                    setShowProfileDropdown(!showProfileDropdown);
+                                    setShowNotifications(false);
+                                    setShowLocationDropdown(false);
+                                }}
+                            >
+                                <Text style={styles.avatarText}>{role === 'client' ? 'C' : 'V'}</Text>
+                            </TouchableOpacity>
+
+                            {showProfileDropdown && (
+                                <View style={styles.profileDropdown}>
+                                    <TouchableOpacity 
+                                        style={styles.profileDropdownItem}
+                                        onPress={() => {
+                                            setShowProfileDropdown(false);
+                                            router.push(role === 'client' ? '/(tabs)/profile' : '/vendor/profile');
+                                        }}
+                                    >
+                                        <Settings size={18} color={Colors.text.primary} />
+                                        <Text style={styles.profileDropdownText}>Profile Settings</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity 
+                                        style={[styles.profileDropdownItem, { borderTopWidth: 1, borderTopColor: '#F3F4F6' }]}
+                                        onPress={() => {
+                                            setShowProfileDropdown(false);
+                                            if (logout) logout();
+                                            else handleLogout();
+                                        }}
+                                    >
+                                        <LogOut size={18} color={Colors.error} />
+                                        <Text style={[styles.profileDropdownText, { color: Colors.error }]}>Log Out</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+                        </View>
                     </View>
                 </View>
 
@@ -235,14 +260,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 40,
     },
-    logo: {
-        fontSize: 24,
-        fontWeight: '800',
-        color: Colors.text.primary,
-        letterSpacing: -0.5,
-    },
-    logoHighlight: {
-        color: Colors.primary,
+    logoImage: {
+        width: 120,
+        height: 40,
     },
     navContainer: {
         gap: 8,
@@ -448,6 +468,31 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontWeight: '600',
         fontSize: 18,
+    },
+    profileDropdown: {
+        position: 'absolute',
+        top: 50,
+        right: 0,
+        width: 200,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        padding: 8,
+        ...Colors.shadow.medium,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        zIndex: 300,
+    },
+    profileDropdownItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        gap: 12,
+    },
+    profileDropdownText: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: Colors.text.primary,
     },
     contentScroll: {
         flex: 1,

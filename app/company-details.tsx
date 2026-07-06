@@ -15,13 +15,13 @@ import Colors from '@/constants/colors';
 
 export default function CompanyDetailsScreen() {
   const router = useRouter();
-  const [companyName, setCompanyName] = useState('Tech Innovations Pvt Ltd');
-  const [designation, setDesignation] = useState('Marketing Manager');
-  const [email, setEmail] = useState('info@techinnovations.com');
-  const [phone, setPhone] = useState('+91 80 1234 5678');
-  const [address, setAddress] = useState('456 Tech Park, Whitefield, Bangalore');
-  const [website, setWebsite] = useState('www.techinnovations.com');
-  const [gstNumber, setGstNumber] = useState('29ABCDE1234F1Z5');
+  const [companyName, setCompanyName] = useState('');
+  const [designation, setDesignation] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [website, setWebsite] = useState('');
+  const [gstNumber, setGstNumber] = useState('');
 
   const handleSave = () => {
     console.log('Saving company details...');

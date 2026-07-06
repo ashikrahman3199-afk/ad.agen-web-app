@@ -10,14 +10,14 @@ import {
 import { Stack, useRouter } from 'expo-router';
 import {
   Bell,
-  Globe,
   Moon,
   Volume2,
-  Lock,
-  Database,
-  Smartphone,
   Mail,
   ChevronRight,
+  FileText,
+  Shield,
+  RotateCcw,
+  Briefcase,
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import WebLayout from '@/components/WebLayout';
@@ -76,41 +76,29 @@ export default function SettingsScreen() {
       title: 'General',
       items: [
         {
-          id: 'language',
-          label: 'Language',
-          icon: Globe,
+          id: 'terms',
+          label: 'Terms & Conditions',
+          icon: FileText,
           type: 'link' as const,
-          value: 'English',
-          onPress: () => console.log('Language'),
+          onPress: () => router.push('/terms'),
         },
         {
-          id: 'device',
-          label: 'Device Preferences',
-          icon: Smartphone,
+          id: 'privacy',
+          label: 'Privacy Policy',
+          icon: Shield,
           type: 'link' as const,
-          onPress: () => console.log('Device'),
+          onPress: () => router.push('/privacy'),
+        },
+        {
+          id: 'refund-policy',
+          label: 'Refund Policy',
+          icon: RotateCcw,
+          type: 'link' as const,
+          onPress: () => router.push('/refund-policy'),
         },
       ],
     },
-    {
-      title: 'Security & Privacy',
-      items: [
-        {
-          id: 'security',
-          label: 'Security Settings',
-          icon: Lock,
-          type: 'link' as const,
-          onPress: () => console.log('Security'),
-        },
-        {
-          id: 'data',
-          label: 'Data & Storage',
-          icon: Database,
-          type: 'link' as const,
-          onPress: () => console.log('Data'),
-        },
-      ],
-    },
+
   ];
 
   return (
@@ -173,18 +161,7 @@ export default function SettingsScreen() {
           </View>
         ))}
 
-        <View style={styles.dangerZone}>
-          <Text style={styles.dangerZoneTitle}>Danger Zone</Text>
-          <TouchableOpacity style={styles.dangerButton}>
-            <Text style={styles.dangerButtonText}>Clear Cache</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.dangerButton}>
-            <Text style={styles.dangerButtonText}>Reset Settings</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.dangerButton, styles.deleteButton]}>
-            <Text style={[styles.dangerButtonText, styles.deleteButtonText]}>Delete Account</Text>
-          </TouchableOpacity>
-        </View>
+
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
@@ -258,38 +235,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.text.secondary,
   },
-  dangerZone: {
-    marginTop: 32,
-    marginBottom: 16,
-  },
-  dangerZoneTitle: {
-    fontSize: 16,
-    fontWeight: '700' as const,
-    color: Colors.error,
-    marginBottom: 12,
-    paddingHorizontal: 4,
-  },
-  dangerButton: {
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: Colors.border.light,
-  },
-  dangerButtonText: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: Colors.text.primary,
-    textAlign: 'center' as const,
-  },
-  deleteButton: {
-    borderColor: Colors.error,
-    backgroundColor: `${Colors.error}10`,
-  },
-  deleteButtonText: {
-    color: Colors.error,
-  },
+
   bottomSpacer: {
     height: 32,
   },

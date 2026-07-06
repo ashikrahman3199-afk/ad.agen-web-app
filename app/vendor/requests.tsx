@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { trpc } from '@/lib/trpc';
-import { Clock } from 'lucide-react-native';
+import { Clock, Inbox, Search } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import WebLayout from '@/components/WebLayout';
 
@@ -31,43 +31,55 @@ export default function VendorRequests() {
     return (
         <WebLayout role="vendor" title="Booking Requests">
             <View style={styles.container}>
-                {requests.map((req) => (
-                    <View key={req.id} style={styles.card}>
-                        <View style={styles.cardHeader}>
-                            <View>
-                                <Text style={styles.clientName}>{req.client}</Text>
-                                <Text style={styles.spaceName}>{req.space}</Text>
-                            </View>
-                            <View style={styles.timeBadge}>
-                                <Clock size={12} color={Colors.text.tertiary} />
-                                <Text style={styles.timeText}>{req.time}</Text>
-                            </View>
+                <View style={styles.headerRow}>
+                    <Text style={styles.pageTitle}>Booking Requests</Text>
+                </View>
+
+                {requests.length === 0 ? (
+                    <View style={styles.emptyState}>
+                        <View style={styles.emptyIconContainer}>
+                            <Inbox size={48} color={Colors.vendor.primary} />
                         </View>
-
-                        <View style={styles.detailsGrid}>
-                            <View style={styles.detailItem}>
-                                <Text style={styles.label}>Duration</Text>
-                                <Text style={styles.value}>{req.date}</Text>
-                            </View>
-                            <View style={styles.detailItem}>
-                                <Text style={styles.label}>Budget</Text>
-                                <Text style={styles.value}>{req.budget}</Text>
-                            </View>
-                            <View style={styles.detailItem}>
-                                <Text style={styles.label}>Status</Text>
-                                <Text style={[styles.value, { color: req.status === 'Upcoming' ? '#0369A1' : '#15803D' }]}>{req.status}</Text>
-                            </View>
-                        </View>
-
-                        <View style={styles.actions}>
-                            <TouchableOpacity style={styles.updateBtn}>
-                                <Text style={styles.updateBtnText}>Update Progress</Text>
-                            </TouchableOpacity>
-                        </View>
-
-
+                        <Text style={styles.emptyTitle}>No Booking Requests Yet</Text>
+                        <Text style={styles.emptyDesc}>When clients request to book your ad spaces, they will appear here. You can then review and update their progress.</Text>
                     </View>
-                ))}
+                ) : (
+                    requests.map((req) => (
+                        <View key={req.id} style={styles.card}>
+                            <View style={styles.cardHeader}>
+                                <View>
+                                    <Text style={styles.clientName}>{req.client}</Text>
+                                    <Text style={styles.spaceName}>{req.space}</Text>
+                                </View>
+                                <View style={styles.timeBadge}>
+                                    <Clock size={12} color={Colors.text.tertiary} />
+                                    <Text style={styles.timeText}>{req.time}</Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.detailsGrid}>
+                                <View style={styles.detailItem}>
+                                    <Text style={styles.label}>Duration</Text>
+                                    <Text style={styles.value}>{req.date}</Text>
+                                </View>
+                                <View style={styles.detailItem}>
+                                    <Text style={styles.label}>Budget</Text>
+                                    <Text style={styles.value}>{req.budget}</Text>
+                                </View>
+                                <View style={styles.detailItem}>
+                                    <Text style={styles.label}>Status</Text>
+                                    <Text style={[styles.value, { color: req.status === 'Upcoming' ? '#0369A1' : '#15803D' }]}>{req.status}</Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.actions}>
+                                <TouchableOpacity style={styles.updateBtn}>
+                                    <Text style={styles.updateBtnText}>Update Progress</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    ))
+                )}
             </View>
         </WebLayout>
     );
@@ -156,8 +168,50 @@ const styles = StyleSheet.create({
         alignSelf: 'flex-start',
     },
     updateBtnText: {
-        color: Colors.primary,
+        color: Colors.vendor.primary,
         fontWeight: '600',
         fontSize: 14,
     },
+    headerRow: {
+        marginBottom: 8,
+    },
+    pageTitle: {
+        fontSize: 24,
+        fontWeight: '700',
+        color: Colors.text.primary,
+    },
+    emptyState: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 48,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        marginTop: 20,
+    },
+    emptyIconContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: '#F0FDFA',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 24,
+    },
+    emptyTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: Colors.text.primary,
+        marginBottom: 12,
+    },
+    emptyDesc: {
+        fontSize: 15,
+        color: Colors.text.secondary,
+        textAlign: 'center',
+        maxWidth: 400,
+        lineHeight: 22,
+        marginBottom: 32,
+    },
+
 });

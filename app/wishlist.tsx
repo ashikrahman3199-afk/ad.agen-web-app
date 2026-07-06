@@ -19,23 +19,15 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
+import WebLayout from '@/components/WebLayout';
 
 export default function WishlistScreen() {
   const insets = useSafeAreaInsets();
   const { wishlist, removeFromWishlist, addToCart } = useApp();
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.safeBackground} />
-      <Stack.Screen options={{ headerShown: false }} />
-
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color={Colors.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Wishlist</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+    <WebLayout role="client" title="Favourites">
+      <View style={styles.container}>
 
       <ScrollView
         style={styles.content}
@@ -104,7 +96,8 @@ export default function WishlistScreen() {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
-    </View>
+      </View>
+    </WebLayout>
   );
 }
 

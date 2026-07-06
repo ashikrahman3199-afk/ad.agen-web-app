@@ -37,7 +37,12 @@ export default function HomeScreen() {
 
 
 
-  const { data: listings = [], isLoading } = trpc.listings.list.useQuery();
+  const { location } = useApp();
+  const { data: allListings = [], isLoading } = trpc.listings.list.useQuery();
+  
+  const listings = allListings.filter((item: any) => 
+    !location || location === 'All Chennai' || location === 'All Locations' || item.location === location
+  );
 
   return (
     <WebLayout role="client" title="Home">
@@ -91,10 +96,17 @@ export default function HomeScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
             {isLoading ? <Text>Loading...</Text> : listings.slice(0, 5).map((item: any) => (
               <TouchableOpacity key={item.id} style={styles.mediaCard} onPress={() => router.push(`/ad-space/${item.id}`)}>
-                <Image source={{ uri: item.imageUrl || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80' }} style={styles.mediaImage} />
+                <Image source={{ uri: item.imageUrl || item.image || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80' }} style={styles.mediaImage} />
                 <View style={styles.mediaContent}>
-                  <Text style={styles.mediaName} numberOfLines={1}>{item.name}</Text>
-                  <Text style={styles.mediaCategory}>{item.type || item.categoryId}</Text>
+                  <Text style={styles.mediaName} numberOfLines={1}>{item.name || item.title}</Text>
+                  <Text style={styles.mediaCategory}>{item.type || item.category}</Text>
+                  <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8}}>
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                       <MapPin size={12} color={Colors.text.tertiary} />
+                       <Text style={{fontSize: 12, color: Colors.text.secondary}}>{item.location || 'Chennai'}</Text>
+                    </View>
+                    <Text style={{fontSize: 14, fontWeight: '700', color: Colors.primary}}>₹{(item.price || 0).toLocaleString()}</Text>
+                  </View>
                 </View>
               </TouchableOpacity>
             ))}
@@ -110,10 +122,15 @@ export default function HomeScreen() {
           <View style={styles.verticalList}>
             {listings.map((item: any) => (
               <TouchableOpacity key={item.id} style={styles.verticalCard} onPress={() => router.push(`/ad-space/${item.id}`)}>
-                <Image source={{ uri: item.imageUrl || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80' }} style={styles.verticalImage} />
+                <Image source={{ uri: item.imageUrl || item.image || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80' }} style={styles.verticalImage} />
                 <View style={styles.verticalContent}>
-                    <Text style={styles.recentName} numberOfLines={2}>{item.name}</Text>
-                    <Text style={styles.mediaCategory}>{item.type || item.categoryId}</Text>
+                    <Text style={styles.recentName} numberOfLines={2}>{item.name || item.title}</Text>
+                    <Text style={styles.mediaCategory}>{item.type || item.category}</Text>
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4}}>
+                       <MapPin size={12} color={Colors.text.tertiary} />
+                       <Text style={{fontSize: 12, color: Colors.text.secondary}}>{item.location || 'Chennai'}</Text>
+                    </View>
+                    <Text style={{fontSize: 14, fontWeight: '700', color: Colors.primary, marginTop: 6}}>₹{(item.price || 0).toLocaleString()} <Text style={{fontSize: 11, fontWeight: '500', color: Colors.text.tertiary}}>per {item.priceUnit || 'Days'}</Text></Text>
                 </View>
               </TouchableOpacity>
             ))}

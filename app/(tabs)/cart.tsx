@@ -68,16 +68,10 @@ export default function CartScreen() {
                         </View>
 
                         <View style={styles.stepper}>
-                          <TouchableOpacity style={styles.stepBtn}>
-                            <Minus size={16} color={Colors.text.secondary} />
-                          </TouchableOpacity>
                           <View style={styles.stepValue}>
-                            <Text style={styles.stepText}>{item.quantity}</Text>
+                            <Text style={styles.stepText}>{item.quantity || 1}</Text>
                             <Text style={styles.stepLabel}>weeks</Text>
                           </View>
-                          <TouchableOpacity style={styles.stepBtn}>
-                            <Plus size={16} color={Colors.primary} />
-                          </TouchableOpacity>
                         </View>
                       </View>
 
@@ -123,8 +117,8 @@ export default function CartScreen() {
                     <Text style={styles.footerLabel}>Total</Text>
                     <Text style={styles.footerTotal}>₹{finalTotal.toLocaleString()}</Text>
                   </View>
-                  <TouchableOpacity style={styles.checkoutBtn} onPress={() => router.push('/booking')}>
-                    <Text style={styles.checkoutText}>Next</Text>
+                  <TouchableOpacity style={styles.checkoutBtn} onPress={() => router.push('/checkout')}>
+                    <Text style={styles.checkoutText}>Checkout</Text>
                   </TouchableOpacity>
                 </View>
               </View>

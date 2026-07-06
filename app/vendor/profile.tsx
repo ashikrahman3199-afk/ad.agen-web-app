@@ -1,34 +1,109 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { User, Mail, Phone, Building, FileText, MapPin, Save, LogOut, CreditCard } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import Colors from '@/constants/colors';
 import WebLayout from '@/components/WebLayout';
+import { useApp } from '@/contexts/AppContext';
+import { trpc } from '@/lib/trpc';
 
 export default function VendorProfile() {
     const router = useRouter();
+    const { user, logout } = useApp();
+    
     const [profile, setProfile] = useState({
-        companyName: 'AdMedia Solutions Pvt Ltd',
-        gstNumber: '33AABCU9603R1Z2',
-        email: 'contact@admedia.com',
-        phone: '+91 98765 43210',
-        address: '123, Anna Salai, Chennai - 600002',
-        contactPerson: 'Rajesh Kumar'
+        companyName: '',
+        gstNumber: '',
+        email: user?.email || '',
+        phone: '',
+        address: '',
+        contactPerson: '',
+        bankName: '',
+        accountHolderName: '',
+        accountNumber: '',
+        ifscCode: '',
+        branchName: ''
     });
 
+    const { data: dbProfile, isLoading } = trpc.vendor.getProfile.useQuery(
+        { email: user?.email || '' },
+        { enabled: !!user?.email }
+    );
+
+    const updateProfileMutation = trpc.vendor.updateProfile.useMutation({
+        onSuccess: () => {
+            alert('Profile updated successfully!');
+        },
+        onError: (err) => {
+            alert('Failed to update profile: ' + err.message);
+        }
+    });
+
+    useEffect(() => {
+        if (dbProfile) {
+            setProfile(prev => ({
+                ...prev,
+                companyName: dbProfile.companyName || '',
+                gstNumber: dbProfile.gstNumber || '',
+                email: dbProfile.email || user?.email || '',
+                phone: dbProfile.phone || '',
+                address: dbProfile.address || '',
+                contactPerson: dbProfile.contactPerson || '',
+                bankName: dbProfile.bankName || '',
+                accountHolderName: dbProfile.accountHolderName || '',
+                accountNumber: dbProfile.accountNumber || '',
+                ifscCode: dbProfile.ifscCode || '',
+                branchName: dbProfile.branchName || '',
+            }));
+        }
+    }, [dbProfile]);
+
     const handleSave = () => {
-        // Handle save logic here
-        alert('Profile updated successfully!');
+        if (!user?.email) return;
+        updateProfileMutation.mutate({
+            email: user.email,
+            companyName: profile.companyName,
+            gstNumber: profile.gstNumber,
+            contactPerson: profile.contactPerson,
+            phone: profile.phone,
+            address: profile.address,
+            bankName: profile.bankName,
+            accountHolderName: profile.accountHolderName,
+            accountNumber: profile.accountNumber,
+            ifscCode: profile.ifscCode,
+            branchName: profile.branchName,
+        });
     };
+
+    const handleLogout = () => {
+        logout();
+        router.replace('/login');
+    };
+
+    if (isLoading) {
+        return (
+            <WebLayout role="vendor" title="Company Profile">
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color={Colors.vendor.primary} />
+                </View>
+            </WebLayout>
+        );
+    }
 
     return (
         <WebLayout role="vendor" title="Company Profile">
             <View style={styles.container}>
                 <View style={styles.header}>
                     <Text style={styles.subtitle}>Manage your company details</Text>
-                    <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-                        <Save size={20} color="#FFFFFF" />
-                        <Text style={styles.saveBtnText}>Save Changes</Text>
+                    <TouchableOpacity 
+                        style={[styles.saveBtn, updateProfileMutation.isPending && { opacity: 0.7 }]} 
+                        onPress={handleSave}
+                        disabled={updateProfileMutation.isPending}
+                    >
+                        {updateProfileMutation.isPending ? <ActivityIndicator color="#fff" size="small" /> : <Save size={20} color="#FFFFFF" />}
+                        <Text style={styles.saveBtnText}>
+                            {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
+                        </Text>
                     </TouchableOpacity>
                 </View>
 
@@ -125,6 +200,44 @@ export default function VendorProfile() {
                         <Text style={styles.sectionTitle}>Bank Details</Text>
                         <View style={styles.row}>
                             <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Bank Name</Text>
+                                <View style={styles.inputWrapper}>
+                                    <Building size={20} color={Colors.text.tertiary} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="e.g. HDFC Bank"
+                                        value={profile.bankName}
+                                        onChangeText={(text) => setProfile({ ...profile, bankName: text })}
+                                    />
+                                </View>
+                            </View>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Branch Name</Text>
+                                <View style={styles.inputWrapper}>
+                                    <MapPin size={20} color={Colors.text.tertiary} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="e.g. Anna Nagar Branch"
+                                        value={profile.branchName}
+                                        onChangeText={(text) => setProfile({ ...profile, branchName: text })}
+                                    />
+                                </View>
+                            </View>
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Account Holder Name</Text>
+                            <View style={styles.inputWrapper}>
+                                <User size={20} color={Colors.text.tertiary} />
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Name as per bank account"
+                                    value={profile.accountHolderName}
+                                    onChangeText={(text) => setProfile({ ...profile, accountHolderName: text })}
+                                />
+                            </View>
+                        </View>
+                        <View style={styles.row}>
+                            <View style={styles.inputGroup}>
                                 <Text style={styles.label}>Account Number</Text>
                                 <View style={styles.inputWrapper}>
                                     <CreditCard size={20} color={Colors.text.tertiary} />
@@ -132,16 +245,21 @@ export default function VendorProfile() {
                                         style={styles.input}
                                         placeholder="XXXXXXXXXXXX"
                                         secureTextEntry
+                                        value={profile.accountNumber}
+                                        onChangeText={(text) => setProfile({ ...profile, accountNumber: text })}
                                     />
                                 </View>
                             </View>
                             <View style={styles.inputGroup}>
                                 <Text style={styles.label}>IFSC Code</Text>
                                 <View style={styles.inputWrapper}>
-                                    <Building size={20} color={Colors.text.tertiary} />
+                                    <FileText size={20} color={Colors.text.tertiary} />
                                     <TextInput
                                         style={styles.input}
                                         placeholder="ABCD0123456"
+                                        autoCapitalize="characters"
+                                        value={profile.ifscCode}
+                                        onChangeText={(text) => setProfile({ ...profile, ifscCode: text })}
                                     />
                                 </View>
                             </View>
@@ -150,7 +268,7 @@ export default function VendorProfile() {
 
                     <View style={styles.divider} />
 
-                    <TouchableOpacity style={styles.logoutBtn} onPress={() => router.replace('/login')}>
+                    <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
                         <LogOut size={20} color="#EF4444" />
                         <Text style={styles.logoutText}>Log Out</Text>
                     </TouchableOpacity>
@@ -177,7 +295,7 @@ const styles = StyleSheet.create({
     saveBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: Colors.primary,
+        backgroundColor: Colors.vendor.primary,
         paddingHorizontal: 20,
         paddingVertical: 10,
         borderRadius: 12,
