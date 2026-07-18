@@ -23,17 +23,17 @@ export default function VendorTermsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        <Text style={styles.title}>VENDOR TERMS & CONDITIONS – ad.agen</Text>
+        <Text style={styles.title}>VENDOR TERMS & CONDITIONS – Ad.Agen</Text>
 
         <Text style={styles.sectionTitle}>1. INTRODUCTION</Text>
         <Text style={styles.paragraph}>
-          These Vendor Terms & Conditions (“Terms”) govern the relationship between Mono Marketing Enterprises Pvt. Ltd. (“Company”, “Platform”, “ad.agen”) and any Vendor using the Platform.{'\n'}
-          By registering as a Vendor on ad.agen, you agree to these Terms.
+          These Vendor Terms & Conditions (“Terms”) govern the relationship between Mono Marketing Enterprises Pvt. Ltd. (“Company”, “Platform”, “Ad.Agen”) and any Vendor using the Platform.{'\n'}
+          By registering as a Vendor on Ad.Agen, you agree to these Terms.
         </Text>
 
         <Text style={styles.sectionTitle}>2. DEFINITIONS</Text>
         <Text style={styles.paragraph}>
-          2.1 “Platform” means the ad.agen mobile application and website.{'\n'}
+          2.1 “Platform” means the Ad.Agen mobile application and website.{'\n'}
           2.2 “Vendor” means any individual or entity listing advertisements, services, or products.{'\n'}
           2.3 “User” means any customer using the Platform.{'\n'}
           2.4 “Applicable Law” includes Indian laws including IT Act, GST laws, DPDP Act, and Consumer Protection Act.
@@ -41,7 +41,7 @@ export default function VendorTermsScreen() {
 
         <Text style={styles.sectionTitle}>3. PLATFORM ROLE</Text>
         <Text style={styles.paragraph}>
-          3.1 ad.agen acts only as an intermediary marketplace platform.{'\n'}
+          3.1 Ad.Agen acts only as an intermediary marketplace platform.{'\n'}
           3.2 The Company:{'\n'}
           (a) does not own Vendor products/services;{'\n'}
           (b) does not guarantee business performance, leads, or sales;{'\n'}

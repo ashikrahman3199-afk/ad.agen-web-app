@@ -23,12 +23,12 @@ export default function PrivacyScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        <Text style={styles.lastUpdated}>PRIVACY POLICY – ad.agen</Text>
+        <Text style={styles.lastUpdated}>PRIVACY POLICY – Ad.Agen</Text>
 
         <Text style={styles.section}>
           <Text style={styles.sectionTitle}>1. INTRODUCTION{'\n'}</Text>
           <Text style={styles.text}>
-            This Privacy Policy explains how ad.agen collects, uses, stores, and protects user and vendor data.
+            This Privacy Policy explains how Ad.Agen collects, uses, stores, and protects user and vendor data.
           </Text>
         </Text>
 

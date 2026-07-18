@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "ad.agen",
+    "name": "Ad.Agen",
     "slug": "ad-agen",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.rork.adrun",
+      "bundleIdentifier": "in.adagen.app",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos",
         "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera",
@@ -27,7 +27,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.adrun",
+      "package": "in.adagen.app",
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",

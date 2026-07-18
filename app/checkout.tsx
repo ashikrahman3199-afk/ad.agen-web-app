@@ -67,7 +67,7 @@ export default function CheckoutScreen() {
           key: 'rzp_test_T5lX5DVtNDEUmz', // Test Key ID
           amount: order.amount, // in paise
           currency: 'INR',
-          name: 'ad.agen',
+          name: 'Ad.Agen',
           description: 'Ad Campaign Booking',
           order_id: order.orderId,
           handler: async function (response: any) {
@@ -90,7 +90,7 @@ export default function CheckoutScreen() {
             }
           },
           prefill: {
-            name: 'ad.agen User',
+            name: 'Ad.Agen User',
             email: 'user@adagen.com',
             contact: '9999999999'
           },

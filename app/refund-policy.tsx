@@ -23,10 +23,10 @@ export default function RefundPolicyScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        <Text style={styles.lastUpdated}>REFUND & CANCELLATION POLICY – ad.agen</Text>
+        <Text style={styles.lastUpdated}>REFUND & CANCELLATION POLICY – Ad.Agen</Text>
 
         <Text style={styles.intro}>
-          <Text style={{ fontWeight: 'bold' }}>Platform:</Text> ad.agen{'\n'}
+          <Text style={{ fontWeight: 'bold' }}>Platform:</Text> Ad.Agen{'\n'}
           <Text style={{ fontWeight: 'bold' }}>Company:</Text> Mono Marketing Enterprises Pvt. Ltd.{'\n'}
           <Text style={{ fontWeight: 'bold' }}>Support Email:</Text> support@monomarketers.com
         </Text>
@@ -34,15 +34,15 @@ export default function RefundPolicyScreen() {
         <Text style={styles.section}>
           <Text style={styles.sectionTitle}>1. INTRODUCTION{'\n'}</Text>
           <Text style={styles.text}>
-            This Refund & Cancellation Policy (“Policy”) governs cancellations, refunds, disputes, and related processes for transactions conducted on the ad.agen platform.{'\n\n'}
-            By using ad.agen, Users and Vendors agree to this Policy.
+            This Refund & Cancellation Policy (“Policy”) governs cancellations, refunds, disputes, and related processes for transactions conducted on the Ad.Agen platform.{'\n\n'}
+            By using Ad.Agen, Users and Vendors agree to this Policy.
           </Text>
         </Text>
 
         <Text style={styles.section}>
           <Text style={styles.sectionTitle}>2. PLATFORM ROLE{'\n'}</Text>
           <Text style={styles.text}>
-            2.1 ad.agen acts solely as an intermediary marketplace platform connecting Users and Vendors.{'\n'}
+            2.1 Ad.Agen acts solely as an intermediary marketplace platform connecting Users and Vendors.{'\n'}
             2.2 Mono Marketing Enterprises Pvt. Ltd. is not the direct provider of Vendor services unless explicitly stated.
           </Text>
         </Text>

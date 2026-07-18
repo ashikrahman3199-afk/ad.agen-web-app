@@ -121,7 +121,7 @@ export default function SignupScreen() {
                     <View style={styles.header}>
                         <Text style={styles.title}>Create Account</Text>
                         <Text style={styles.subtitle}>
-                            {role === 'vendor' ? 'Sign up to start receiving ad requests' : 'Start your journey with ad.agen today.'}
+                            {role === 'vendor' ? 'Sign up to start receiving ad requests' : 'Start your journey with Ad.Agen today.'}
                         </Text>
                     </View>
 

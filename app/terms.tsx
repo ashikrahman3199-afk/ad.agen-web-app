@@ -23,17 +23,17 @@ export default function TermsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        <Text style={styles.title}>USER TERMS & CONDITIONS – ad.agen</Text>
+        <Text style={styles.title}>USER TERMS & CONDITIONS – Ad.Agen</Text>
 
         <Text style={styles.sectionTitle}>1. INTRODUCTION</Text>
         <Text style={styles.paragraph}>
-          These Terms govern the use of ad.agen by Users.{'\n'}
+          These Terms govern the use of Ad.Agen by Users.{'\n'}
           By using the Platform, you agree to these Terms.
         </Text>
 
         <Text style={styles.sectionTitle}>2. PLATFORM ROLE</Text>
         <Text style={styles.paragraph}>
-          2.1 ad.agen is an intermediary marketplace connecting Users and Vendors.{'\n'}
+          2.1 Ad.Agen is an intermediary marketplace connecting Users and Vendors.{'\n'}
           2.2 The Company does not directly provide Vendor services.
         </Text>
 
