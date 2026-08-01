@@ -22,7 +22,7 @@ export const trpcClient = trpc.createClient({
       transformer: superjson,
       headers: async () => {
         const rawToken = await AsyncStorage.getItem("authToken");
-        const token = rawToken?.replace(/[\r\n"]/g, '');
+        const token = rawToken?.replace(/[^a-zA-Z0-9\.\-_]/g, '');
         return {
           ...(token && { authorization: `Bearer ${token}` }),
         };
