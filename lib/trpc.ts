@@ -11,11 +11,8 @@ const getBaseUrl = () => {
     return process.env.EXPO_PUBLIC_RORK_API_BASE_URL;
   }
 
-  if (typeof window !== 'undefined') {
-    return '';
-  }
-  // Fallback for native apps
-  return 'https://adagen.in';
+  // Keep using the working Render backend
+  return 'https://ad-agen-web-app.onrender.com';
 };
 
 export const trpcClient = trpc.createClient({
