@@ -12,10 +12,10 @@ import { sign } from "hono/jwt";
 const JWT_SECRET = process.env.JWT_SECRET || "fallback-dev-secret-rork-2026";
 
 const cognitoClient = new CognitoIdentityProviderClient({ 
-    region: process.env.AWS_REGION?.trim() || "ap-south-1",
+    region: process.env.AWS_REGION?.replace(/\s+/g, '') || "ap-south-1",
     credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID?.trim() || "",
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY?.trim() || "",
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID?.replace(/\s+/g, '') || "",
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY?.replace(/\s+/g, '') || "",
     }
 });
 const CLIENT_ID = "qi8njk53r44pfkfirmiid8681"; // User App / Vendor App Cognito Client ID
