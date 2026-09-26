@@ -16,6 +16,9 @@ const cognitoClient = new CognitoIdentityProviderClient({
     credentials: {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID?.replace(/\s+/g, '') || "",
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY?.replace(/\s+/g, '') || "",
+        ...(process.env.AWS_SESSION_TOKEN && {
+            sessionToken: process.env.AWS_SESSION_TOKEN.replace(/\s+/g, '')
+        })
     }
 });
 const CLIENT_ID = "qi8njk53r44pfkfirmiid8681"; // User App / Vendor App Cognito Client ID
