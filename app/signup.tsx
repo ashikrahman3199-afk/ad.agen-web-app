@@ -6,7 +6,7 @@ import { Phone, User, Building2, ArrowRight, CheckCircle2, Mail, Lock, FileText,
 import Colors from '@/constants/colors';
 import { trpc } from '@/lib/trpc';
 import { useApp } from '@/contexts/AppContext';
-import LegalModal from '@/components/LegalModal';
+
 
 const clientLogoWhite = require('@/assets/images/logo-client-white.png');
 const vendorLogoWhite = require('@/assets/images/logo-vendor-white.png');
@@ -28,8 +28,7 @@ export default function SignupScreen() {
     const [gst, setGst] = useState('');
     const [agreed, setAgreed] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
-    const [legalModalVisible, setLegalModalVisible] = useState(false);
-    const [legalModalType, setLegalModalType] = useState<'terms' | 'vendor-terms' | 'privacy' | null>(null);
+
 
     const registerMutation = trpc.auth.register.useMutation({
         onSuccess: (data) => {
@@ -259,14 +258,14 @@ export default function SignupScreen() {
                             By continuing, you agree to our{' '}
                             <Text 
                                 style={[styles.termsLink, { color: role === 'client' ? Colors.primary : Colors.vendor.primary }]}
-                                onPress={() => { setLegalModalType(role === 'vendor' ? 'vendor-terms' : 'terms'); setLegalModalVisible(true); }}
+                                onPress={() => router.push(role === 'vendor' ? '/vendor-terms' : '/terms')}
                             >
                                 {role === 'vendor' ? 'Vendor Terms & Conditions' : 'Terms & Conditions'}
                             </Text>
                             {' '}and{' '}
                             <Text 
                                 style={[styles.termsLink, { color: role === 'client' ? Colors.primary : Colors.vendor.primary }]}
-                                onPress={() => { setLegalModalType('privacy'); setLegalModalVisible(true); }}
+                                onPress={() => router.push('/privacy')}
                             >
                                 Privacy Policy
                             </Text>.
@@ -282,7 +281,6 @@ export default function SignupScreen() {
                 </View>
                 </ScrollView>
             </View>
-            <LegalModal visible={legalModalVisible} type={legalModalType} role={role} onClose={() => setLegalModalVisible(false)} />
         </View>
     );
 }

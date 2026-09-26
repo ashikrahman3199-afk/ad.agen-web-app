@@ -6,7 +6,7 @@ import { Phone, ArrowRight, CheckCircle2, Mail, Lock } from 'lucide-react-native
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 import { trpc } from '@/lib/trpc';
-import LegalModal from '@/components/LegalModal';
+
 
 const clientLogoWhite = require('@/assets/images/logo-client-white.png');
 const vendorLogoWhite = require('@/assets/images/logo-vendor-white.png');
@@ -21,8 +21,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [legalModalVisible, setLegalModalVisible] = useState(false);
-  const [legalModalType, setLegalModalType] = useState<'terms' | 'vendor-terms' | 'privacy' | null>(null);
+
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
@@ -189,14 +188,14 @@ export default function LoginScreen() {
               By continuing, you agree to our{' '}
               <Text 
                 style={[styles.termsLink, { color: role === 'client' ? Colors.primary : Colors.vendor.primary }]}
-                onPress={() => { setLegalModalType(role === 'vendor' ? 'vendor-terms' : 'terms'); setLegalModalVisible(true); }}
+                onPress={() => router.push(role === 'vendor' ? '/vendor-terms' : '/terms')}
               >
                 {role === 'vendor' ? 'Vendor Terms & Conditions' : 'Terms & Conditions'}
               </Text>
               {' '}and{' '}
               <Text 
                 style={[styles.termsLink, { color: role === 'client' ? Colors.primary : Colors.vendor.primary }]}
-                onPress={() => { setLegalModalType('privacy'); setLegalModalVisible(true); }}
+                onPress={() => router.push('/privacy')}
               >
                 Privacy Policy
               </Text>.
@@ -204,7 +203,6 @@ export default function LoginScreen() {
           </View>
         </View>
       </View>
-      <LegalModal visible={legalModalVisible} type={legalModalType} role={role} onClose={() => setLegalModalVisible(false)} />
     </View>
   );
 }
