@@ -2,7 +2,7 @@ import { z } from "zod";
 import { publicProcedure, createTRPCRouter } from "../create-context";
 import { db } from "../../db";
 import { sns } from "../../lib/sns";
-import { PutCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
+import { PutCommand, GetCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
 import { PublishCommand } from "@aws-sdk/client-sns";
 import { CognitoIdentityProviderClient, InitiateAuthCommand, SignUpCommand, ForgotPasswordCommand, ConfirmForgotPasswordCommand } from "@aws-sdk/client-cognito-identity-provider";
 import { TABLE_NAMES } from "../../config";
@@ -340,6 +340,41 @@ export const authRouter = createTRPCRouter({
             } catch (error: any) {
                 console.error("Reset Password Error:", error);
                 throw new Error(error.message || "Failed to reset password. Please check your code.");
+            }
+        }),
+
+    deleteAccount: publicProcedure
+        .input(z.object({ email: z.string().email(), role: z.enum(['client', 'vendor']) }))
+        .mutation(async ({ input }) => {
+            const { email, role } = input;
+            const tableName = role === 'vendor' ? TABLE_NAMES.VENDOR_PROFILE : TABLE_NAMES.USER_PROFILE;
+            const userId = email.toLowerCase();
+
+            try {
+                // Check if user exists first
+                const result = await db.send(
+                    new GetCommand({
+                        TableName: tableName,
+                        Key: { id: userId },
+                    })
+                );
+
+                if (!result.Item) {
+                    throw new Error("Account not found");
+                }
+
+                // Delete from DynamoDB
+                await db.send(
+                    new DeleteCommand({
+                        TableName: tableName,
+                        Key: { id: userId }
+                    })
+                );
+
+                return { success: true, message: "Account deleted successfully" };
+            } catch (error: any) {
+                console.error("Account Deletion Error:", error);
+                throw new Error(error.message || "Failed to delete account. Please try again.");
             }
         })
 });
